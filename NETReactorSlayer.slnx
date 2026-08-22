@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="de4dot.blocks/de4dot.blocks.csproj" />
+  <Project Path="NETReactorSlayer.CLI/NETReactorSlayer.CLI.csproj" />
+  <Project Path="NETReactorSlayer.Core/NETReactorSlayer.Core.csproj" />
+  <Project Path="NETReactorSlayer.De4dot/NETReactorSlayer.De4dot.csproj" />
+</Solution>
