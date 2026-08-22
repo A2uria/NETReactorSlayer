@@ -17,6 +17,8 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using dnlib.DotNet;
 using dnlib.DotNet.Writer;
 using dnlib.PE;
@@ -100,7 +102,7 @@ namespace NETReactorSlayer.Core
             try
             {
                 ModuleWriterOptionsBase writer;
-                if (Module.IsILOnly)
+                if (Module.IsILOnly && !Options.NativeSave)
                     writer = new ModuleWriterOptions(Module);
                 else
                     writer = new NativeModuleWriterOptions(Module, false);
@@ -111,7 +113,7 @@ namespace NETReactorSlayer.Core
                 if (Options.KeepOldMaxStackValue)
                     writer.MetadataOptions.Flags |= MetadataFlags.KeepOldMaxStack;
 
-                if (Module.IsILOnly)
+                if (Module.IsILOnly && !Options.NativeSave)
                     Module.Write(Options.DestPath, (ModuleWriterOptions)writer);
                 else
                     Module.NativeWrite(Options.DestPath, (NativeModuleWriterOptions)writer);
@@ -137,14 +139,14 @@ namespace NETReactorSlayer.Core
         {
             try
             {
-                Assembly = Assembly.Load(Options.SourcePath);
+                Assembly = Assembly.Load(Options.FileToLoad);
                 return true;
             }
             catch
             {
                 try
                 {
-                    Assembly = Assembly.UnsafeLoadFrom(Options.SourcePath);
+                    Assembly = Assembly.UnsafeLoadFrom(Options.FileToLoad);
                     return true;
                 }
                 catch { }

@@ -28,20 +28,42 @@ namespace NETReactorSlayer.Core
         public Options(IReadOnlyList<string> args)
         {
             var path = string.Empty;
+            var originalFilename = string.Empty;
             for (var i = 0; i < args.Count; i++)
             {
                 var key = args[i];
                 if (File.Exists(key))
                 {
-                    path = key;
+                    if (string.IsNullOrEmpty(path))
+                        path = key;
+                    else if (string.IsNullOrEmpty(originalFilename))
+                        originalFilename = key;
                     continue;
                 }
 
                 if (args.Count < i + 2)
                     break;
                 var value = args[i + 1];
+
+                if (key == "--type-restore")
+                {
+                    bool isRestoreTypes = true;
+                    if (!string.IsNullOrEmpty(value))
+                    {
+                        bool.TryParse(value, out isRestoreTypes);
+                    }
+                    if (isRestoreTypes)
+                        RestoreTypes = true;
+
+                    if (!RestoreTypes)
+                        RemoveStage(typeof(TypeRestorer));
+                }
+
                 if (bool.TryParse(value, out var flag))
                 {
+                    if (key == "--native-save")
+                        NativeSave = flag;
+
                     i++;
                     if (!flag)
                         switch (key)
@@ -166,6 +188,11 @@ namespace NETReactorSlayer.Core
 
             if (path == string.Empty)
                 return;
+
+            if (string.IsNullOrEmpty(originalFilename))
+                originalFilename = path;
+
+            FileToLoad = originalFilename;
             SourcePath = Path.GetFullPath(path);
             SourceFileName = Path.GetFileNameWithoutExtension(path);
             SourceFileExt = Path.GetExtension(path);
@@ -181,6 +208,7 @@ namespace NETReactorSlayer.Core
         public string SourceFileExt { get; set; }
         public string SourceFileName { get; set; }
         public string SourcePath { get; set; }
+        public string FileToLoad { get; set; }
         public string DestFileName { get; set; }
         public string DestPath { get; set; }
         public bool AntiManipulationPatcher { get; set; } = true;
@@ -193,6 +221,8 @@ namespace NETReactorSlayer.Core
         public bool MethodInliner { get; set; } = true;
         public bool RemoveCallsToObfuscatorTypes { get; set; } = true;
         public bool SymbolRenamer { get; set; } = true;
+        public bool RestoreTypes { get; set; } = false;
+        public bool NativeSave { get; set; } = false;
         public bool ResourceResolver { get; set; } = true;
         public bool StringDecrypter { get; set; } = true;
         public bool StrongNamePatcher { get; set; } = true;

@@ -15,7 +15,11 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.IO.Compression;
 using System.Linq;
+using System.Runtime.InteropServices;
+using BrotliSharpLib;
 using de4dot.blocks;
 using dnlib.DotNet;
 using NETReactorSlayer.Core.Abstractions;
@@ -141,6 +145,22 @@ namespace NETReactorSlayer.Core.Stages
                 );
         }
 
+        public static byte[] TryBrotliDecmpress(byte[] bytes)
+        {
+            // https://github.com/master131/BrotliSharpLib
+            MemoryStream memoryStream = new MemoryStream();
+            using (
+                BrotliSharpLib.BrotliStream brotliStream = new BrotliSharpLib.BrotliStream(
+                    new MemoryStream(bytes),
+                    CompressionMode.Decompress
+                )
+            )
+            {
+                brotliStream.CopyTo(memoryStream);
+            }
+            return memoryStream.ToArray();
+        }
+
         private static byte[] Decompress(byte[] bytes)
         {
             try
@@ -151,11 +171,28 @@ namespace NETReactorSlayer.Core.Stages
             {
                 try
                 {
-                    return DeobUtils.Inflate(bytes, true);
+                    byte[] decomp = DeobUtils.Inflate(bytes, true);
+                    if (decomp[0] == 'M' && decomp[1] == 'Z')
+                        return decomp;
+                    try
+                    {
+                        return TryBrotliDecmpress(bytes);
+                    }
+                    catch
+                    {
+                        return null;
+                    }
                 }
                 catch
                 {
-                    return null;
+                    try
+                    {
+                        return TryBrotliDecmpress(bytes);
+                    }
+                    catch
+                    {
+                        return null;
+                    }
                 }
             }
         }

@@ -13,6 +13,7 @@
     along with NETReactorSlayer.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using de4dot.blocks;
@@ -151,26 +152,36 @@ namespace NETReactorSlayer.Core.Stages
                     is not { } entryPoint
                 )
                     return;
-                foreach (var attribute in Context.Module.EntryPoint.CustomAttributes)
-                    entryPoint.CustomAttributes.Add(attribute);
+
                 if (
-                    entryPoint.HasParams()
-                    && Context.Module.EntryPoint.HasParams()
-                    && entryPoint.Parameters.First().Type.FullName == "System.Object"
+                    entryPoint.ReturnType.FullName == "System.Void"
+                    && (
+                        entryPoint.DeclaringType.BaseType == null
+                        || !entryPoint.DeclaringType.BaseType.ToString().Contains("Delegate")
+                    )
                 )
-                    entryPoint.Parameters.First().Type = Context
-                        .Module.EntryPoint.Parameters.First()
-                        .Type;
-                if (Context.Module.EntryPoint.DeclaringType.DeclaringType != null)
-                    Context.Module.EntryPoint.DeclaringType.DeclaringType.NestedTypes.Remove(
-                        Context.Module.EntryPoint.DeclaringType
+                {
+                    foreach (var attribute in Context.Module.EntryPoint.CustomAttributes)
+                        entryPoint.CustomAttributes.Add(attribute);
+                    if (
+                        entryPoint.HasParams()
+                        && Context.Module.EntryPoint.HasParams()
+                        && entryPoint.Parameters.First().Type.FullName == "System.Object"
+                    )
+                        entryPoint.Parameters.First().Type = Context
+                            .Module.EntryPoint.Parameters.First()
+                            .Type;
+                    if (Context.Module.EntryPoint.DeclaringType.DeclaringType != null)
+                        Context.Module.EntryPoint.DeclaringType.DeclaringType.NestedTypes.Remove(
+                            Context.Module.EntryPoint.DeclaringType
+                        );
+                    else
+                        Context.Module.Types.Remove(Context.Module.EntryPoint.DeclaringType);
+                    Context.Logger.Info(
+                        $"Entrypoint fixed: {Context.Module.EntryPoint.MDToken.ToInt32()} -> {entryPoint.MDToken.ToInt32()}"
                     );
-                else
-                    Context.Module.Types.Remove(Context.Module.EntryPoint.DeclaringType);
-                Context.Logger.Info(
-                    $"Entrypoint fixed: {Context.Module.EntryPoint.MDToken.ToInt32()} -> {entryPoint.MDToken.ToInt32()}"
-                );
-                Context.Module.EntryPoint = entryPoint;
+                    Context.Module.EntryPoint = entryPoint;
+                }
             }
             catch { }
         }

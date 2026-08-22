@@ -20,6 +20,7 @@ namespace NETReactorSlayer.Core.Abstractions
 {
     public interface IOptions
     {
+        public string FileToLoad { get; set; }
         string SourceDir { get; set; }
         string SourceFileExt { get; set; }
         string SourceFileName { get; set; }
@@ -48,5 +49,6 @@ namespace NETReactorSlayer.Core.Abstractions
         bool RenameShort { get; set; }
         RenamerFlags RenamerFlags { get; set; }
         List<IStage> Stages { get; }
+        bool NativeSave { get; set; }
     }
 }

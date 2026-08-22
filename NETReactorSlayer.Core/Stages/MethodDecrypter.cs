@@ -17,10 +17,13 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using de4dot.blocks;
 using dnlib.DotNet;
 using dnlib.DotNet.Emit;
+using dnlib.DotNet.Writer;
 using dnlib.IO;
+using dnlib.PE;
 using NETReactorSlayer.Core.Abstractions;
 using NETReactorSlayer.Core.Helper;
 
@@ -33,6 +36,39 @@ namespace NETReactorSlayer.Core.Stages
             Context = context;
             try
             {
+                if (Context.Module != null && Context.Module.GlobalType != null)
+                {
+                    IEnumerable<MethodDef> ctors = Context.Module.GlobalType.FindConstructors();
+                    foreach (MethodDef ctor in ctors)
+                    {
+                        if (ctor == null)
+                            continue;
+                        if (!ctor.HasBody)
+                            continue;
+                        if (ctor.Body == null)
+                            continue;
+                        if (!ctor.Body.HasInstructions)
+                            continue;
+
+                        foreach (Instruction ins in ctor.Body.Instructions)
+                        {
+                            if (ins.OpCode != OpCodes.Call)
+                                continue;
+                            if (!(ins.Operand is MethodDef))
+                                continue;
+
+                            MethodDef called = ins.Operand as MethodDef;
+                            if (called == null)
+                                continue;
+
+                            SimpleDeobfuscator.Deobfuscate(called);
+                            ControlFlowDeobfuscator.InlineBoolean(called);
+                            SimpleDeobfuscator.DeobfuscateBlocks(called);
+
+                            GotoDeobfuscator.ControlFlowReactorDo.deobfuscate(called);
+                        }
+                    }
+                }
                 if (!Find() && !Find2())
                 {
                     Context.Logger.Warn("Couldn't find any encrypted method.");
@@ -40,6 +76,11 @@ namespace NETReactorSlayer.Core.Stages
                 }
 
                 Context.Info.NecroBit = true;
+
+                if (_encryptedResource == null)
+                {
+                    Context.Logger.Warn("Couldn't find encryptedResource.");
+                }
 
                 var bytes = _encryptedResource.Decrypt();
 
@@ -49,13 +90,14 @@ namespace NETReactorSlayer.Core.Stages
                 Cleaner.AddResourceToBeRemoved(_encryptedResource.EmbeddedResource);
                 Cleaner.AddCallToBeRemoved(_encryptedResource.DecrypterMethod);
                 Context.Logger.Info(
-                    $"{Context.Module.GetTypes().SelectMany(x => x.Methods).Count()} Methods decrypted."
+                    $"{Context.Module.GetTypes().SelectMany(x => x.Methods).Count()} Methods decrypted. {EncryptedResource.DecrypterVer}"
                 );
             }
             catch (Exception ex)
             {
+                Context.Logger.Error(ex.StackTrace.ToString());
                 Context.Logger.Error(
-                    $"An unexpected error occurred during decrypting methods. {ex.Message}."
+                    $"An unexpected error occurred during decrypting methods. {ex.Message}. {EncryptedResource.DecrypterVer}"
                 );
             }
 
@@ -106,8 +148,11 @@ namespace NETReactorSlayer.Core.Stages
             return false;
         }
 
+        public static bool IsEntryPointMethod = false;
+
         private bool Find2()
         {
+            IsEntryPointMethod = false;
             var cctor = Context.Module.GlobalType.FindStaticConstructor();
             if (cctor is not { HasBody: true } || !cctor.Body.HasInstructions)
                 return false;
@@ -140,6 +185,47 @@ namespace NETReactorSlayer.Core.Stages
                         _encryptedResource = new EncryptedResource(Context, methodDef);
                         if (_encryptedResource.EmbeddedResource != null)
                             return true;
+                        _encryptedResource.Dispose();
+                    }
+
+            if (Context.Module.EntryPoint == null)
+                return false;
+
+            cctor = Context.Module.EntryPoint.DeclaringType.FindStaticConstructor();
+            if (cctor is not { HasBody: true } || !cctor.Body.HasInstructions)
+                return false;
+            foreach (
+                var instr in cctor.Body.Instructions.Where(instr =>
+                    instr.OpCode.Equals(OpCodes.Call)
+                )
+            )
+                if (
+                    instr.Operand is MethodDef { DeclaringType: { }, HasBody: true } methodDef
+                    && methodDef.Body.HasInstructions
+                )
+                    if (
+                        DotNetUtils.GetMethod(
+                            methodDef.DeclaringType,
+                            "System.Security.Cryptography.SymmetricAlgorithm",
+                            "()"
+                        ) != null
+                    )
+                    {
+                        if (
+                            !EncryptedResource.IsKnownDecrypter(
+                                methodDef,
+                                Array.Empty<string>(),
+                                true
+                            )
+                        )
+                            continue;
+
+                        _encryptedResource = new EncryptedResource(Context, methodDef);
+                        if (_encryptedResource.EmbeddedResource != null)
+                        {
+                            IsEntryPointMethod = true;
+                            return true;
+                        }
                         _encryptedResource.Dispose();
                     }
 
@@ -213,6 +299,70 @@ namespace NETReactorSlayer.Core.Stages
             return false;
         }
 
+        private MethodDef FindBinaryReaderReadInt32Method()
+        {
+            var decrypterMethod = _encryptedResource.DecrypterMethod;
+            var calls = decrypterMethod
+                .Body.Instructions.Where(x =>
+                    x.OpCode.Equals(OpCodes.Callvirt) && x.Operand is MethodDef
+                )
+                .Select(x => x.Operand)
+                .Cast<MethodDef>();
+            foreach (var method in calls)
+                try
+                {
+                    SimpleDeobfuscator.DeobfuscateBlocks(method);
+                    if (
+                        method.MethodSig.RetType.FullName != "System.Int32"
+                        || method.Body.Instructions.Count != 4
+                    )
+                        continue;
+
+                    if (
+                        !method.Body.Instructions[0].IsLdarg()
+                        || !method.Body.Instructions[1].OpCode.Equals(OpCodes.Ldfld)
+                        || (
+                            !method.Body.Instructions[2].OpCode.Equals(OpCodes.Callvirt)
+                            && !method.Body.Instructions[2].OpCode.Equals(OpCodes.Call)
+                        )
+                        || !method.Body.Instructions[3].OpCode.Equals(OpCodes.Ret)
+                    )
+                        continue;
+
+                    if (!method.Body.Instructions[2].Operand.ToString()!.Contains("System.Int32"))
+                        continue;
+
+                    for (var i = 0; i < decrypterMethod.Body.Instructions.Count; i++)
+                        try
+                        {
+                            if (
+                                !decrypterMethod.Body.Instructions[i].IsLdloc()
+                                || !decrypterMethod
+                                    .Body.Instructions[i + 1]
+                                    .OpCode.Equals(OpCodes.Callvirt)
+                                || decrypterMethod.Body.Instructions[i + 1].Operand
+                                    is not MethodDef calledMethod
+                                || !decrypterMethod
+                                    .Body.Instructions[i + 2]
+                                    .OpCode.Equals(OpCodes.Pop)
+                            )
+                                continue;
+
+                            if (
+                                MethodEqualityComparer.CompareDeclaringTypes.Equals(
+                                    calledMethod,
+                                    method
+                                )
+                            )
+                                return method;
+                        }
+                        catch { }
+                }
+                catch { }
+
+            return null;
+        }
+
         private bool RestoreMethodsBody(byte[] bytes)
         {
             var dumpedMethods = new DumpedMethods();
@@ -222,11 +372,104 @@ namespace NETReactorSlayer.Core.Stages
             var methodsDataReader = ByteArrayDataReaderFactory.CreateReader(bytes);
 
             int tmp;
-            if (FindBinaryReaderMethod(out var popCallsCount) && popCallsCount > 3)
+            if (FindBinaryReaderMethod(out var popCallsCount) && popCallsCount >= 3)
+            {
                 for (var i = 0; i < popCallsCount; i++)
                     methodsDataReader.ReadInt32();
+            }
             else
             {
+                bool IsOk = false;
+                bool SpecialCase = false;
+                int ReadCount = 0;
+                int Keypos = GetXorKeyPos(_encryptedResource.DecrypterMethod);
+                if (Keypos > 0)
+                {
+                    MethodDef ReadInt32Method = FindBinaryReaderReadInt32Method();
+                    if (ReadInt32Method != null)
+                    {
+                        for (
+                            int i = Keypos;
+                            i < _encryptedResource.DecrypterMethod.Body.Instructions.Count;
+                            i++
+                        )
+                        {
+                            if (
+                                _encryptedResource.DecrypterMethod.Body.Instructions[i].OpCode
+                                    == OpCodes.Callvirt
+                                && _encryptedResource.DecrypterMethod.Body.Instructions[i].Operand
+                                    != null
+                                && _encryptedResource
+                                    .DecrypterMethod.Body.Instructions[i]
+                                    .Operand.ToString()
+                                    .Contains("ResolveMethod")
+                            )
+                            {
+                                IsOk = true;
+                                break;
+                            }
+
+                            if (
+                                _encryptedResource.DecrypterMethod.Body.Instructions[i].IsLdloc()
+                                && _encryptedResource
+                                    .DecrypterMethod
+                                    .Body
+                                    .Instructions[i + 1]
+                                    .OpCode == OpCodes.Ldc_I4_4
+                                && (
+                                    _encryptedResource
+                                        .DecrypterMethod
+                                        .Body
+                                        .Instructions[i + 2]
+                                        .OpCode == OpCodes.Bne_Un
+                                    || _encryptedResource
+                                        .DecrypterMethod
+                                        .Body
+                                        .Instructions[i + 2]
+                                        .OpCode == OpCodes.Bne_Un_S
+                                )
+                            )
+                            {
+                                SpecialCase = true;
+                                break;
+                            }
+
+                            if (
+                                _encryptedResource
+                                    .DecrypterMethod.Body.Instructions[i]
+                                    .OpCode.Equals(OpCodes.Callvirt)
+                                || _encryptedResource
+                                    .DecrypterMethod.Body.Instructions[i]
+                                    .OpCode.Equals(OpCodes.Call)
+                            )
+                            {
+                                if (
+                                    _encryptedResource.DecrypterMethod.Body.Instructions[i].Operand
+                                        != null
+                                    && _encryptedResource
+                                        .DecrypterMethod
+                                        .Body
+                                        .Instructions[i]
+                                        .Operand == ReadInt32Method
+                                )
+                                    ReadCount++;
+                            }
+                        }
+                    }
+                }
+
+                if (SpecialCase)
+                {
+                    ReadCount -= 2;
+                    IsOk = true;
+                }
+
+                if (IsOk && ReadCount >= 3)
+                {
+                    for (int i = 0; i < ReadCount; i++)
+                        methodsDataReader.ReadInt32();
+                }
+
                 tmp = methodsDataReader.ReadInt32();
                 if ((tmp & -16777216L) == 100663296L)
                     methodsDataReader.ReadInt32();
@@ -426,13 +669,38 @@ namespace NETReactorSlayer.Core.Stages
             )
                 return CompileMethodType.V1;
 
-            return DotNetUtils.IsMethod(
-                method,
-                "System.UInt32",
-                "(System.IntPtr,System.IntPtr,System.IntPtr,System.UInt32,System.IntPtr,System.UInt32&)"
+            if (
+                DotNetUtils.IsMethod(
+                    method,
+                    "System.UInt32",
+                    "(System.IntPtr,System.IntPtr,System.IntPtr,System.UInt32,System.IntPtr,System.UInt32&)"
+                )
             )
-                ? CompileMethodType.V2
-                : CompileMethodType.Unknown;
+                return CompileMethodType.V2;
+
+            MethodDef mdef = method as MethodDef;
+            if (mdef == null)
+                return CompileMethodType.Unknown;
+
+            if (mdef.ReturnType.ToString() == "System.UInt32")
+            {
+                if (
+                    mdef.Parameters[0].Type.ToString() == "System.IntPtr"
+                    && mdef.Parameters[1].Type.ToString() == "System.IntPtr"
+                )
+                {
+                    if (
+                        mdef.Parameters[3].Type.ToString() == "System.UInt32"
+                        && mdef.Parameters[4].Type.ToString() == "System.IntPtr"
+                        && mdef.Parameters[5].Type.ToString() == "System.UInt32&"
+                    )
+                    {
+                        if (mdef.Parameters[2].Type.ToString().EndsWith("&"))
+                            return CompileMethodType.V3;
+                    }
+                }
+            }
+            return CompileMethodType.Unknown;
         }
 
         private static DumpedMethodsRestorer CreateDumpedMethodsRestorer(
@@ -469,6 +737,33 @@ namespace NETReactorSlayer.Core.Stages
             }
 
             return 0;
+        }
+
+        private static int GetXorKeyPos(MethodDef method)
+        {
+            for (var i = 0; i < method.Body.Instructions.Count - 1; i++)
+            {
+                if (method.Body.Instructions[i].OpCode.Code.Equals(Code.Ldind_I8))
+                {
+                    var ldci4 = method.Body.Instructions[i + 1];
+                    long result;
+                    if (ldci4.IsLdcI4())
+                        result = ldci4.GetLdcI4Value();
+                    else
+                    {
+                        if (!ldci4.OpCode.Code.Equals(Code.Ldc_I8))
+                            goto Continue;
+                        result = (long)ldci4.Operand;
+                    }
+
+                    return i;
+                }
+
+                Continue:
+                ;
+            }
+
+            return -1;
         }
 
         private static MethodDef FindDnrCompileMethod(TypeDef type) =>
@@ -517,6 +812,7 @@ namespace NETReactorSlayer.Core.Stages
             Unknown,
             V1,
             V2,
+            V3,
         }
     }
 }

@@ -92,6 +92,8 @@ namespace NETReactorSlayer.Core
                 "                   Remove strong name removal protection (True)",
                 "--rem-calls BOOL",
                 "                Remove calls to obfuscator methods (True)",
+                "--type-restore BOOL",
+                "             Restore Types (False)",
                 "--rem-junks BOOL",
                 "                Remove junk types, methods, fields, etc... (True)",
                 "--rename FLAGS",
@@ -108,6 +110,8 @@ namespace NETReactorSlayer.Core
                 "           Keep old max stack value (False)",
                 "--no-pause BOOL",
                 "                 Close cli immediately after deobfuscation (False)",
+                "--native-save BOOL",
+                "              Native save option does the trick for VM (False)",
             };
             Console.Write("  Usage: ");
             Console.ForegroundColor = ConsoleColor.Gray;

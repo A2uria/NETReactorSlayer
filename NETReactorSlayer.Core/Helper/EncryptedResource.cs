@@ -16,6 +16,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using de4dot.blocks;
 using de4dot.blocks.cflow;
 using dnlib.DotNet;
@@ -72,6 +73,8 @@ namespace NETReactorSlayer.Core.Helper
             return null;
         }
 
+        public static string DecrypterVer = "";
+
         private IDecrypter GetDecrypter()
         {
             if (!DecrypterMethod.IsStatic || !DecrypterMethod.HasBody)
@@ -79,18 +82,37 @@ namespace NETReactorSlayer.Core.Helper
 
             var localTypes = new LocalTypes(DecrypterMethod);
 
-            if (DecrypterV1.CouldBeResourceDecrypter(DecrypterMethod, localTypes, AdditionalTypes))
-                return new DecrypterV1(DecrypterMethod);
+            DecrypterV5 dec_v5 = new DecrypterV5(DecrypterMethod);
+            if (dec_v5.Initialize())
+            {
+                DecrypterVer = "V5 (trial)";
+                return dec_v5;
+            }
 
+            if (DecrypterV1.CouldBeResourceDecrypter(DecrypterMethod, localTypes, AdditionalTypes))
+            {
+                DecrypterVer = "V1";
+                return new DecrypterV1(DecrypterMethod);
+            }
             if (DecrypterV3.CouldBeResourceDecrypter(localTypes, AdditionalTypes))
+            {
+                DecrypterVer = "V3";
                 return new DecrypterV3(DecrypterMethod);
+            }
 
             if (DecrypterV4.CouldBeResourceDecrypter(DecrypterMethod, localTypes, AdditionalTypes))
+            {
+                DecrypterVer = "V4";
                 return new DecrypterV4(DecrypterMethod);
+            }
 
-            return DecrypterV2.CouldBeResourceDecrypter(localTypes, AdditionalTypes)
-                ? new DecrypterV2(DecrypterMethod)
-                : null;
+            if (DecrypterV2.CouldBeResourceDecrypter(localTypes, AdditionalTypes))
+            {
+                DecrypterVer = "V2";
+                return new DecrypterV2(DecrypterMethod);
+            }
+
+            return null;
         }
 
         public static bool IsKnownDecrypter(
@@ -182,32 +204,6 @@ namespace NETReactorSlayer.Core.Helper
             )
                 .OfType<IMethod>()
                 .Any(calledMethod => calledMethod.FullName.Contains(fullName));
-        }
-
-        public static bool TryGetLdcValue(Instruction instruction, out int value)
-        {
-            value = 0;
-
-            if (
-                !instruction.IsLdcI4()
-                && !instruction.OpCode.Equals(OpCodes.Ldc_I8)
-                && !instruction.OpCode.Equals(OpCodes.Ldc_R4)
-                && !instruction.OpCode.Equals(OpCodes.Ldc_R8)
-            )
-                return false;
-
-            try
-            {
-                value = instruction.IsLdcI4()
-                    ? instruction.GetLdcI4Value()
-                    : Convert.ToInt32(instruction.Operand);
-
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
         }
 
         public MethodDef DecrypterMethod { get; }
@@ -667,7 +663,13 @@ namespace NETReactorSlayer.Core.Helper
                             goto Emulate;
                         if (!_instructions[index].IsLdloc())
                             goto Emulate;
-                        if (!TryGetLdcValue(_instructions[index + 1], out var value) || value != 0)
+                        if (
+                            !_instructions[index + 1].OpCode.Equals(OpCodes.Ldc_I4_0)
+                            && (
+                                !_instructions[index + 1].IsLdcI4()
+                                || _instructions[index + 1].GetLdcI4Value() != 0
+                            )
+                        )
                             goto Emulate;
                         if (
                             !_instructions[index + 2].OpCode.Equals(OpCodes.Bne_Un)
@@ -676,38 +678,26 @@ namespace NETReactorSlayer.Core.Helper
                             goto Emulate;
                         if (!_instructions[index + 3].IsLdloc())
                             goto Emulate;
-                        if (!TryGetLdcValue(_instructions[index + 4], out value) || value != 1)
+                        if (
+                            !_instructions[index + 4].OpCode.Equals(OpCodes.Ldc_I4_1)
+                            && (
+                                !_instructions[index + 4].IsLdcI4()
+                                || _instructions[index + 4].GetLdcI4Value() != 1
+                            )
+                        )
                             goto Emulate;
                         if (!_instructions[index + 5].OpCode.Equals(OpCodes.Sub))
                             goto Emulate;
                         if (!_instructions[index + 6].IsStloc())
                             goto Emulate;
-
-                        switch (
+                        if (
                             _instrEmulator.GetLocal(
                                 CheckLocal(_instructions[index + 6], false).Index
                             )
+                                is Int32Value local
+                            && local.Value != Int32Value.Zero.Value
                         )
-                        {
-                            case Int32Value int32:
-                            {
-                                if (int32.Value != Int32Value.Zero.Value)
-                                    index += 7;
-                                break;
-                            }
-                            case Int64Value int64:
-                            {
-                                if (int64.Value != Int64Value.Zero.Value)
-                                    index += 7;
-                                break;
-                            }
-                            case Real8Value real8Value:
-                            {
-                                if (!real8Value.Value.Equals(new Real8Value(0).Value))
-                                    index += 7;
-                                break;
-                            }
-                        }
+                            index += 7;
                     }
                     catch { }
 
@@ -808,7 +798,13 @@ namespace NETReactorSlayer.Core.Helper
                             goto Emulate;
                         if (!_instructions[index].IsLdloc())
                             goto Emulate;
-                        if (!TryGetLdcValue(_instructions[index + 1], out var value) || value != 0)
+                        if (
+                            !_instructions[index + 1].OpCode.Equals(OpCodes.Ldc_I4_0)
+                            && (
+                                !_instructions[index + 1].IsLdcI4()
+                                || _instructions[index + 1].GetLdcI4Value() != 0
+                            )
+                        )
                             goto Emulate;
                         if (
                             !_instructions[index + 2].OpCode.Equals(OpCodes.Bne_Un)
@@ -817,38 +813,26 @@ namespace NETReactorSlayer.Core.Helper
                             goto Emulate;
                         if (!_instructions[index + 3].IsLdloc())
                             goto Emulate;
-                        if (!TryGetLdcValue(_instructions[index + 4], out value) || value != 1)
+                        if (
+                            !_instructions[index + 4].OpCode.Equals(OpCodes.Ldc_I4_1)
+                            && (
+                                !_instructions[index + 4].IsLdcI4()
+                                || _instructions[index + 4].GetLdcI4Value() != 1
+                            )
+                        )
                             goto Emulate;
                         if (!_instructions[index + 5].OpCode.Equals(OpCodes.Sub))
                             goto Emulate;
                         if (!_instructions[index + 6].IsStloc())
                             goto Emulate;
-
-                        switch (
+                        if (
                             _instrEmulator.GetLocal(
                                 CheckLocal(_instructions[index + 6], false).Index
                             )
+                                is Int32Value local
+                            && local.Value != Int32Value.Zero.Value
                         )
-                        {
-                            case Int32Value int32:
-                            {
-                                if (int32.Value != Int32Value.Zero.Value)
-                                    index += 7;
-                                break;
-                            }
-                            case Int64Value int64:
-                            {
-                                if (int64.Value != Int64Value.Zero.Value)
-                                    index += 7;
-                                break;
-                            }
-                            case Real8Value real8Value:
-                            {
-                                if (!real8Value.Value.Equals(new Real8Value(0).Value))
-                                    index += 7;
-                                break;
-                            }
-                        }
+                            index += 7;
                     }
                     catch { }
 
@@ -1389,7 +1373,13 @@ namespace NETReactorSlayer.Core.Helper
                             goto Emulate;
                         if (!_instructions[index].IsLdloc())
                             goto Emulate;
-                        if (!TryGetLdcValue(_instructions[index + 1], out var value) || value != 0)
+                        if (
+                            !_instructions[index + 1].OpCode.Equals(OpCodes.Ldc_I4_0)
+                            && (
+                                !_instructions[index + 1].IsLdcI4()
+                                || _instructions[index + 1].GetLdcI4Value() != 0
+                            )
+                        )
                             goto Emulate;
                         if (
                             !_instructions[index + 2].OpCode.Equals(OpCodes.Bne_Un)
@@ -1398,38 +1388,26 @@ namespace NETReactorSlayer.Core.Helper
                             goto Emulate;
                         if (!_instructions[index + 3].IsLdloc())
                             goto Emulate;
-                        if (!TryGetLdcValue(_instructions[index + 4], out value) || value != 1)
+                        if (
+                            !_instructions[index + 4].OpCode.Equals(OpCodes.Ldc_I4_1)
+                            && (
+                                !_instructions[index + 4].IsLdcI4()
+                                || _instructions[index + 4].GetLdcI4Value() != 1
+                            )
+                        )
                             goto Emulate;
                         if (!_instructions[index + 5].OpCode.Equals(OpCodes.Sub))
                             goto Emulate;
                         if (!_instructions[index + 6].IsStloc())
                             goto Emulate;
-
-                        switch (
+                        if (
                             _instrEmulator.GetLocal(
                                 CheckLocal(_instructions[index + 6], false).Index
                             )
+                                is Int32Value local
+                            && local.Value != Int32Value.Zero.Value
                         )
-                        {
-                            case Int32Value int32:
-                            {
-                                if (int32.Value != Int32Value.Zero.Value)
-                                    index += 7;
-                                break;
-                            }
-                            case Int64Value int64:
-                            {
-                                if (int64.Value != Int64Value.Zero.Value)
-                                    index += 7;
-                                break;
-                            }
-                            case Real8Value real8Value:
-                            {
-                                if (!real8Value.Value.Equals(new Real8Value(0).Value))
-                                    index += 7;
-                                break;
-                            }
-                        }
+                            index += 7;
                     }
                     catch { }
 
@@ -1481,6 +1459,146 @@ namespace NETReactorSlayer.Core.Helper
             private DecrypterVersion _decrypterVersion = DecrypterVersion.V6X;
         }
 
+        private class DecrypterV5 : IDecrypter
+        {
+            public DecrypterV5(MethodDef method)
+            {
+                _key = GetDecryptionKey(method);
+                _iv = GetDecryptionIV(method);
+                _decrypterMethod = method;
+            }
+
+            public static bool CouldBeResourceDecrypter(
+                StringCounts stringCounts,
+                IEnumerable<string> additionalTypes
+            )
+            {
+                var requiredTypes = new List<string> { "System.Int32", "System.Byte[]" };
+                requiredTypes.AddRange(additionalTypes);
+                return stringCounts.All(requiredTypes);
+            }
+
+            public unsafe byte[] Decrypt(EmbeddedResource resource)
+            {
+                byte[] encrypted = resource.CreateReader().ToArray();
+                byte[] decrypted = new byte[encrypted.Length];
+                uint sum = 0U;
+
+                byte[] new_key = null;
+                if (_key != null && _iv != null)
+                {
+                    new_key = _key;
+                    for (int i = 0; i < _iv.Length; i++)
+                    {
+                        new_key[i] ^= _iv[i];
+                    }
+                }
+
+                for (var i = 0; i < encrypted.Length; i += 4)
+                {
+                    if (new_key != null)
+                        sum += ReadUInt32(new_key, i % new_key.Length);
+
+                    sum += Enc_key;
+                    WriteUInt32(decrypted, i, sum ^ ReadUInt32(encrypted, i));
+                }
+
+                return decrypted;
+            }
+
+            public bool Initialize()
+            {
+                var origInstrs = _decrypterMethod.Body.Instructions;
+
+                for (int i = 0; i < origInstrs.Count - 11; i++)
+                {
+                    if (
+                        origInstrs[i].IsLdloc()
+                        && origInstrs[i + 1].IsStloc()
+                        && origInstrs[i + 2].IsLdloc()
+                        && origInstrs[i + 3].IsLdcI4()
+                        && origInstrs[i + 4].OpCode == OpCodes.Add
+                        && origInstrs[i + 5].IsStloc()
+                    )
+                    {
+                        Local local1 = origInstrs[i].GetLocal(_decrypterMethod.Body.Variables);
+                        if (local1 == null)
+                            continue;
+                        Local local2 = origInstrs[i + 1].GetLocal(_decrypterMethod.Body.Variables);
+                        if (local2 == null || local1 != local2)
+                            continue;
+                        Local local3 = origInstrs[i + 2].GetLocal(_decrypterMethod.Body.Variables);
+                        if (local3 == null || local1 != local3)
+                            continue;
+                        Local local4 = origInstrs[i + 5].GetLocal(_decrypterMethod.Body.Variables);
+                        if (local4 == null || local1 != local4)
+                            continue;
+
+                        Enc_key = (uint)origInstrs[i + 3].GetLdcI4Value();
+
+                        return true;
+                    }
+
+                    if (
+                        origInstrs[i].IsLdcI4()
+                        && origInstrs[i + 1].OpCode == OpCodes.Add
+                        && origInstrs[i + 2].IsStloc()
+                        && origInstrs[i + 3].IsLdloc()
+                        && origInstrs[i + 4].IsLdloc()
+                        && origInstrs[i + 5].OpCode == OpCodes.Ldc_I4_1
+                        && origInstrs[i + 6].OpCode == OpCodes.Sub
+                        && (
+                            origInstrs[i + 7].OpCode == OpCodes.Bne_Un
+                            || origInstrs[i + 7].OpCode == OpCodes.Bne_Un_S
+                        )
+                        && origInstrs[i + 8].IsLdloc()
+                        && origInstrs[i + 9].OpCode == OpCodes.Ldc_I4_0
+                        && (
+                            origInstrs[i + 10].OpCode == OpCodes.Ble
+                            || origInstrs[i + 10].OpCode == OpCodes.Ble_S
+                        )
+                    )
+                    {
+                        Enc_key = (uint)origInstrs[i].GetLdcI4Value();
+
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            private static uint ReadUInt32(byte[] ary, int index)
+            {
+                var sizeLeft = ary.Length - index;
+                if (sizeLeft >= 4)
+                    return BitConverter.ToUInt32(ary, index);
+                return sizeLeft switch
+                {
+                    1 => ary[index],
+                    2 => (uint)(ary[index] | (ary[index + 1] << 8)),
+                    3 => (uint)(ary[index] | (ary[index + 1] << 8) | (ary[index + 2] << 16)),
+                    _ => throw new ApplicationException("Can't read data"),
+                };
+            }
+
+            private static void WriteUInt32(IList<byte> ary, int index, uint value)
+            {
+                var num = ary.Count - index;
+                if (num >= 1)
+                    ary[index] = (byte)value;
+                if (num >= 2)
+                    ary[index + 1] = (byte)(value >> 8);
+                if (num >= 3)
+                    ary[index + 2] = (byte)(value >> 16);
+                if (num >= 4)
+                    ary[index + 3] = (byte)(value >> 24);
+            }
+
+            private uint Enc_key;
+            private readonly byte[] _key,
+                _iv;
+            private readonly MethodDef _decrypterMethod;
+        }
         #endregion
     }
 }

@@ -14,6 +14,7 @@
 */
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using de4dot.blocks;
 using dnlib.DotNet;
@@ -73,6 +74,100 @@ namespace NETReactorSlayer.Core.Stages
                 }
 
             return false;
+        }
+
+        bool HasMethodCalls(MethodDef method)
+        {
+            if (method == null)
+                return true;
+
+            if (!method.HasBody || method.Body == null || method.Body.HasInstructions)
+                return false;
+
+            for (var i = 0; i < method.Body.Instructions.Count; i++)
+            {
+                try
+                {
+                    if (
+                        method.Body.Instructions[i].OpCode.Equals(OpCodes.Call)
+                        && method.Body.Instructions[i].Operand is MethodDef
+                    )
+                    {
+                        return true;
+                    }
+                }
+                catch { }
+            }
+
+            return false;
+        }
+
+        private long InlineStaticWayBooleans()
+        {
+            long count = 0;
+            foreach (
+                var method in Context
+                    .Module.GetTypes()
+                    .Where(x => x.HasMethods)
+                    .SelectMany(type =>
+                        type.Methods.Where(x => x.HasBody && x.Body.HasInstructions)
+                    )
+            )
+            {
+                for (var i = 0; i < method.Body.Instructions.Count; i++)
+                    try
+                    {
+                        if (
+                            !method.Body.Instructions[i].OpCode.Equals(OpCodes.Call)
+                            || !method.Body.Instructions[i + 1].IsConditionalBranch()
+                        )
+                            continue;
+
+                        if (method.Body.Instructions[i].Operand is MethodDef)
+                            continue;
+
+                        MethodDef called = method.Body.Instructions[i].Operand as MethodDef;
+
+                        IEnumerable<MethodDef> constructors =
+                            called.DeclaringType.FindConstructors();
+                        if (
+                            called != null
+                            && called.HasBody
+                            && called.Body != null
+                            && called.Body.HasInstructions
+                        )
+                        {
+                            if (
+                                called.Body.Instructions.Count == 2
+                                && called.Body.Instructions[0].OpCode == OpCodes.Ldnull
+                                && called.Body.Instructions[1].OpCode == OpCodes.Ret
+                            )
+                            {
+                                bool HasMethodCall = false;
+                                foreach (MethodDef ctor in constructors)
+                                {
+                                    if (!ctor.IsStatic)
+                                        continue;
+
+                                    if (HasMethodCalls(ctor))
+                                    {
+                                        HasMethodCall = true;
+                                        break;
+                                    }
+                                }
+
+                                method.Body.Instructions[i] = Instruction.CreateLdcI4(0);
+                                method.Body.Instructions[i - 1].OpCode = OpCodes.Nop;
+                                count++;
+                            }
+                        }
+                    }
+                    catch { }
+
+                SimpleDeobfuscator.DeobfuscateBlocks(method);
+            }
+
+            return count;
         }
 
         private long InlineAllBooleans(byte[] bytes)

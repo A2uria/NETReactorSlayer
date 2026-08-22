@@ -18,6 +18,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using de4dot.blocks;
 using dnlib.DotNet;
@@ -288,16 +290,39 @@ namespace NETReactorSlayer.Core.Stages
             return count;
         }
 
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+        static extern int MessageBox(IntPtr hWnd, String text, String caption, uint type);
+
         private long InlineStringsDynamically()
         {
             if ((Context.Info.NativeStub && Context.Info.NecroBit) || !Context.Info.UsesReflection)
                 return 0;
 
+            try
+            {
+                RuntimeHelpers.RunModuleConstructor(Context.Assembly.ManifestModule.ModuleHandle);
+            }
+            catch (Exception exc)
+            {
+                MessageBox(new IntPtr(0), exc.ToString(), "Exception on ModuleConstructor", 0);
+            }
+
             long count = 0;
             MethodDef decrypterMethod = null;
             EmbeddedResource encryptedResource = null;
+            bool FirstTime = true;
+            try
+            {
+                StacktracePatcher.Patch();
+            }
+            catch (Exception exc)
+            {
+                MessageBox(new IntPtr(0), exc.ToString(), "Exception on StringDec - Harmony", 0);
+            }
 
-            StacktracePatcher.Patch();
+            bool Failed = false;
+            byte[] StringBytes = null;
+
             foreach (var type in Context.Module.GetTypes())
             foreach (
                 var method in (
@@ -309,6 +334,80 @@ namespace NETReactorSlayer.Core.Stages
                 for (var i = 0; i < method.Body.Instructions.Count; i++)
                     try
                     {
+                        if ((i + 1) >= method.Body.Instructions.Count)
+                            break;
+
+                        if (
+                            method.Body.Instructions[i].OpCode == OpCodes.Ldsfld
+                            && method.Body.Instructions[i].Operand is FieldDef
+                        )
+                        {
+                            FieldDef field = method.Body.Instructions[i].Operand as FieldDef;
+                            if (
+                                field != null
+                                && field.IsStatic
+                                && string.IsNullOrEmpty(field.DeclaringType.Namespace.String)
+                                && field.DeclaringType.BaseType != null
+                                && field.DeclaringType.BaseType.FullName == "System.Object"
+                            )
+                            {
+                                if (field.FieldType.FullName == "System.String")
+                                {
+                                    try
+                                    {
+                                        FieldInfo rfiled1 =
+                                            Context.Assembly.ManifestModule.ResolveField(
+                                                field.ResolveFieldDef().MDToken.ToInt32()
+                                            );
+                                        object fvalue = rfiled1.GetValue(null);
+                                        if (fvalue != null && fvalue is String)
+                                        {
+                                            method.Body.Instructions[i].OpCode = OpCodes.Ldstr;
+                                            method.Body.Instructions[i].Operand = (string)fvalue;
+                                            count += 1L;
+                                        }
+                                    }
+                                    catch { }
+                                }
+                                else if (field.FieldType.FullName == "System.Single")
+                                {
+                                    try
+                                    {
+                                        FieldInfo rfiled1 =
+                                            Context.Assembly.ManifestModule.ResolveField(
+                                                field.ResolveFieldDef().MDToken.ToInt32()
+                                            );
+                                        object fvalue = rfiled1.GetValue(null);
+                                        if (fvalue != null && fvalue is float)
+                                        {
+                                            method.Body.Instructions[i].OpCode = OpCodes.Ldc_R4;
+                                            method.Body.Instructions[i].Operand = (float)fvalue;
+                                            count += 1L;
+                                        }
+                                    }
+                                    catch { }
+                                }
+                                else if (field.FieldType.FullName == "System.Double")
+                                {
+                                    try
+                                    {
+                                        FieldInfo rfiled1 =
+                                            Context.Assembly.ManifestModule.ResolveField(
+                                                field.ResolveFieldDef().MDToken.ToInt32()
+                                            );
+                                        object fvalue = rfiled1.GetValue(null);
+                                        if (fvalue != null && fvalue is double)
+                                        {
+                                            method.Body.Instructions[i].OpCode = OpCodes.Ldc_R8;
+                                            method.Body.Instructions[i].Operand = (double)fvalue;
+                                            count += 1L;
+                                        }
+                                    }
+                                    catch { }
+                                }
+                            }
+                        }
+
                         if (
                             !method.Body.Instructions[i].IsLdcI4()
                             || !method.Body.Instructions[i + 1].OpCode.Equals(OpCodes.Call)
@@ -318,6 +417,13 @@ namespace NETReactorSlayer.Core.Stages
                         var methodDef = (
                             (IMethod)method.Body.Instructions[i + 1].Operand
                         ).ResolveMethodDef();
+
+                        if (methodDef == null)
+                            continue;
+
+                        if (!methodDef.IsStatic)
+                            continue;
+
                         if (!methodDef.HasReturnType)
                             continue;
 
@@ -346,8 +452,10 @@ namespace NETReactorSlayer.Core.Stages
                         )
                             continue;
 
+                        string resourceName = null;
+
                         if (
-                            !methodDef.Body.Instructions.Any(x =>
+                            methodDef.Body.Instructions.Any(x =>
                                 x.OpCode.Equals(OpCodes.Callvirt)
                                 && x.Operand.ToString()!
                                     .Contains(
@@ -355,47 +463,181 @@ namespace NETReactorSlayer.Core.Stages
                                     )
                             )
                         )
+                        {
+                            resourceName = DotNetUtils
+                                .GetCodeStrings(methodDef)
+                                .FirstOrDefault(name =>
+                                    Context.Assembly.GetManifestResourceNames().Any(x => x == name)
+                                );
+                        }
+                        StacktracePatcher.PatchStackTraceGetMethod.MethodToReplace =
+                            Context.Assembly.ManifestModule.ResolveMethod(
+                                (int)methodDef.ResolveMethodDef().MDToken.Raw
+                            ) as MethodInfo;
+                        if (!StacktracePatcher.PatchStackTraceGetMethod.MethodToReplace.IsStatic)
                             continue;
-
-                        var resourceName = DotNetUtils
-                            .GetCodeStrings(methodDef)
-                            .FirstOrDefault(name =>
-                                Context.Assembly.GetManifestResourceNames().Any(x => x == name)
+                        var result =
+                            StacktracePatcher.PatchStackTraceGetMethod.MethodToReplace.Invoke(
+                                null,
+                                new object[] { method.Body.Instructions[i].GetLdcI4Value() }
                             );
-
-                        if (resourceName == null)
-                            continue;
-
-                        var result = (
-                            StacktracePatcher.PatchStackTraceGetMethod.MethodToReplace =
-                                Context.Assembly.ManifestModule.ResolveMethod(
-                                    (int)methodDef.ResolveMethodDef().MDToken.Raw
-                                ) as MethodInfo
-                        ).Invoke(
-                            null,
-                            new object[] { method.Body.Instructions[i].GetLdcI4Value() }
-                        );
 
                         if (result is not string operand)
                             continue;
                         decrypterMethod ??= methodDef;
                         if (
                             encryptedResource == null
+                            && resourceName != null
                             && DotNetUtils.GetResource(Context.Module, resourceName)
                                 is EmbeddedResource resource
                         )
                             encryptedResource = resource;
+
+                        try
+                        {
+                            if (
+                                methodDef.Body.Instructions.Count > 0
+                                && methodDef.Body.Instructions[0].OpCode == OpCodes.Ldsfld
+                            )
+                            {
+                                FieldDef field = methodDef.Body.Instructions[0].Operand as FieldDef;
+                                if (field != null)
+                                {
+                                    FieldInfo rfiled = Context.Assembly.ManifestModule.ResolveField(
+                                        (int)field.ResolveFieldDef().MDToken.Raw
+                                    );
+                                    object fvalue = rfiled.GetValue(null);
+                                    if (fvalue != null && fvalue is byte[])
+                                    {
+                                        StringBytes = (byte[])fvalue;
+                                    }
+                                }
+                            }
+                        }
+                        catch { }
+
                         method.Body.Instructions[i].OpCode = OpCodes.Nop;
                         method.Body.Instructions[i + 1].OpCode = OpCodes.Ldstr;
                         method.Body.Instructions[i + 1].Operand = operand;
                         count += 1L;
                     }
-                    catch { }
+                    catch (Exception exc)
+                    {
+                        Failed = true;
+                        if (FirstTime)
+                        {
+                            MessageBox(new IntPtr(0), exc.ToString(), "Exception on StringDec", 0);
+                            FirstTime = false;
+                        }
+                    }
+
+            if (Failed && StringBytes != null && StringBytes.Length > 0)
+                foreach (var type in Context.Module.GetTypes())
+                foreach (
+                    var method in (
+                        from x in type.Methods
+                        where x.HasBody && x.Body.HasInstructions
+                        select x
+                    ).ToArray()
+                )
+                    for (var i = 0; i < method.Body.Instructions.Count; i++)
+                        try
+                        {
+                            if ((i + 1) >= method.Body.Instructions.Count)
+                                break;
+
+                            if (
+                                !method.Body.Instructions[i].IsLdcI4()
+                                || !method.Body.Instructions[i + 1].OpCode.Equals(OpCodes.Call)
+                            )
+                                continue;
+
+                            var methodDef = (
+                                (IMethod)method.Body.Instructions[i + 1].Operand
+                            ).ResolveMethodDef();
+
+                            if (methodDef == null)
+                                continue;
+
+                            if (!methodDef.HasReturnType)
+                                continue;
+
+                            if (
+                                TypeEqualityComparer.Instance.Equals(
+                                    method.DeclaringType,
+                                    methodDef.DeclaringType
+                                )
+                            )
+                                continue;
+
+                            if (
+                                methodDef.ReturnType.FullName != "System.String"
+                                && !(
+                                    methodDef.DeclaringType != null
+                                    && methodDef.DeclaringType == type
+                                    && methodDef.ReturnType.FullName == "System.Object"
+                                )
+                            )
+                                continue;
+
+                            if (
+                                !methodDef.HasParams()
+                                || methodDef.Parameters.Count != 1
+                                || methodDef.Parameters[0].Type.FullName != "System.Int32"
+                            )
+                                continue;
+
+                            string resourceName = null;
+
+                            if (
+                                methodDef.Body.Instructions.Any(x =>
+                                    x.OpCode.Equals(OpCodes.Callvirt)
+                                    && x.Operand.ToString()!
+                                        .Contains(
+                                            "System.Reflection.Assembly::GetManifestResourceStream"
+                                        )
+                                )
+                            )
+                            {
+                                resourceName = DotNetUtils
+                                    .GetCodeStrings(methodDef)
+                                    .FirstOrDefault(name =>
+                                        Context
+                                            .Assembly.GetManifestResourceNames()
+                                            .Any(x => x == name)
+                                    );
+                            }
+                            int ivalue = method.Body.Instructions[i].GetLdcI4Value();
+                            int stringsize = BitConverter.ToInt32(StringBytes, ivalue);
+                            byte[] array = new byte[stringsize];
+                            Array.Copy(StringBytes, ivalue + 4, array, 0, stringsize);
+                            string dstring = Encoding.Unicode.GetString(array, 0, array.Length);
+
+                            method.Body.Instructions[i].OpCode = OpCodes.Nop;
+                            method.Body.Instructions[i + 1].OpCode = OpCodes.Ldstr;
+                            method.Body.Instructions[i + 1].Operand = dstring;
+                            count += 1L;
+                        }
+                        catch (Exception exc)
+                        {
+                            Failed = true;
+                            if (FirstTime)
+                            {
+                                MessageBox(
+                                    new IntPtr(0),
+                                    exc.ToString(),
+                                    "Exception on StringDec",
+                                    0
+                                );
+                                FirstTime = false;
+                            }
+                        }
 
             if (decrypterMethod == null || encryptedResource == null)
                 return count;
             Cleaner.AddMethodToBeRemoved(decrypterMethod);
-            Cleaner.AddResourceToBeRemoved(encryptedResource);
+            if (encryptedResource != null)
+                Cleaner.AddResourceToBeRemoved(encryptedResource);
 
             return count;
         }
