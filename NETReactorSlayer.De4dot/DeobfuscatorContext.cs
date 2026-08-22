@@ -37,7 +37,7 @@ namespace NETReactorSlayer.De4dot
             {
                 TypeDef typeDef => typeDef,
                 TypeRef tr => tr.Resolve(),
-                _ => null
+                _ => null,
             };
         }
     }

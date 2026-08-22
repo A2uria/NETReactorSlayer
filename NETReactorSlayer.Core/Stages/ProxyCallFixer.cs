@@ -56,7 +56,9 @@ namespace NETReactorSlayer.Core.Stages
             }
             catch (Exception ex)
             {
-                Context.Logger.Error($"An unexpected error occurred during fixing proxied calls. {ex.Message}.");
+                Context.Logger.Error(
+                    $"An unexpected error occurred during fixing proxied calls. {ex.Message}."
+                );
             }
 
             _encryptedResource?.Dispose();
@@ -65,20 +67,30 @@ namespace NETReactorSlayer.Core.Stages
         private bool Find()
         {
             var callCounter = new CallCounter();
-            foreach (var type in from x in Context.Module.GetTypes()
-                     where x.Namespace.Equals("") && DotNetUtils.DerivesFromDelegate(x)
-                     select x)
+            foreach (
+                var type in from x in Context.Module.GetTypes()
+                where x.Namespace.Equals("") && DotNetUtils.DerivesFromDelegate(x)
+                select x
+            )
                 if (type.FindStaticConstructor() is { } cctor)
-                    foreach (var method in DotNetUtils.GetMethodCalls(cctor).Where(method =>
-                                 method.MethodSig.GetParamCount() == 1 &&
-                                 method.GetParam(0).FullName == "System.RuntimeTypeHandle"))
+                    foreach (
+                        var method in DotNetUtils
+                            .GetMethodCalls(cctor)
+                            .Where(method =>
+                                method.MethodSig.GetParamCount() == 1
+                                && method.GetParam(0).FullName == "System.RuntimeTypeHandle"
+                            )
+                    )
                         callCounter.Add(method);
 
             if (callCounter.Most() is not { } mostCalls)
                 return false;
 
             var methodDef = mostCalls.ResolveMethodDef();
-            if (methodDef == null || !EncryptedResource.IsKnownDecrypter(methodDef, Array.Empty<string>(), true))
+            if (
+                methodDef == null
+                || !EncryptedResource.IsKnownDecrypter(methodDef, Array.Empty<string>(), true)
+            )
                 return false;
 
             _encryptedResource = new EncryptedResource(Context, methodDef);
@@ -105,7 +117,11 @@ namespace NETReactorSlayer.Core.Stages
             return true;
         }
 
-        private void GetCallInfo(IMDTokenProvider field, out IMethod calledMethod, out OpCode callOpcode)
+        private void GetCallInfo(
+            IMDTokenProvider field,
+            out IMethod calledMethod,
+            out OpCode callOpcode
+        )
         {
             callOpcode = OpCodes.Call;
             _dictionary.TryGetValue((int)field.MDToken.Raw, out var token);
@@ -118,15 +134,25 @@ namespace NETReactorSlayer.Core.Stages
         private long RestoreCalls()
         {
             long count = 0;
-            foreach (var method in Context.Module.GetTypes().SelectMany(type =>
-                         (from x in type.Methods where x.HasBody && x.Body.HasInstructions select x)
-                         .ToArray()))
+            foreach (
+                var method in Context
+                    .Module.GetTypes()
+                    .SelectMany(type =>
+                        (
+                            from x in type.Methods
+                            where x.HasBody && x.Body.HasInstructions
+                            select x
+                        ).ToArray()
+                    )
+            )
             {
                 for (var i = 0; i < method.Body.Instructions.Count; i++)
                     try
                     {
-                        if (!method.Body.Instructions[i].OpCode.Equals(OpCodes.Ldsfld) ||
-                            !method.Body.Instructions[i + 1].OpCode.Equals(OpCodes.Call))
+                        if (
+                            !method.Body.Instructions[i].OpCode.Equals(OpCodes.Ldsfld)
+                            || !method.Body.Instructions[i + 1].OpCode.Equals(OpCodes.Call)
+                        )
                             continue;
                         var field = method.Body.Instructions[i].Operand as IField;
                         GetCallInfo(field, out var iMethod, out var opCpde);
@@ -148,7 +174,6 @@ namespace NETReactorSlayer.Core.Stages
 
             return count;
         }
-
 
         private IContext Context { get; set; }
         private Dictionary<int, int> _dictionary;

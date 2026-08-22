@@ -42,7 +42,9 @@ namespace NETReactorSlayer.De4dot.Renamer
             if (_classNames.ContainsKey(type.TypeDef.FullName))
                 val = true;
             else if (type.BaseType == null)
-                val = type.TypeDef.BaseType != null && _classNames.ContainsKey(type.TypeDef.BaseType.FullName);
+                val =
+                    type.TypeDef.BaseType != null
+                    && _classNames.ContainsKey(type.TypeDef.BaseType.FullName);
             else
                 val = Check(type.BaseType.TypeDef, recurseCount + 1);
 

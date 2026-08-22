@@ -36,9 +36,10 @@ namespace NETReactorSlayer.De4dot
             o switch
             {
                 Parameter arg => arg.Type.GetElementType() == ElementType.Object,
-                FieldDef field => field.FieldSig.GetFieldType().GetElementType() == ElementType.Object,
+                FieldDef field => field.FieldSig.GetFieldType().GetElementType()
+                    == ElementType.Object,
                 TypeSig sig => sig.ElementType == ElementType.Object,
-                _ => throw new ApplicationException($"Unknown type: {o.GetType()}")
+                _ => throw new ApplicationException($"Unknown type: {o.GetType()}"),
             };
     }
 }

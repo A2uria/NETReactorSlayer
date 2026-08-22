@@ -28,8 +28,15 @@ namespace NETReactorSlayer.Core.Stages
         {
             long count = 0;
             var proxies = new HashSet<MethodDef>();
-            foreach (var method in context.Module.GetTypes().SelectMany(type =>
-                         from x in type.Methods.ToList() where x.HasBody && x.Body.HasInstructions select x))
+            foreach (
+                var method in context
+                    .Module.GetTypes()
+                    .SelectMany(type =>
+                        from x in type.Methods.ToList()
+                        where x.HasBody && x.Body.HasInstructions
+                        select x
+                    )
+            )
                 try
                 {
                     var length = method.Body.Instructions.Count;
@@ -37,10 +44,13 @@ namespace NETReactorSlayer.Core.Stages
                     for (; i < length; i++)
                     {
                         MethodDef methodDef;
-                        if (!method.Body.Instructions[i].OpCode.Equals(OpCodes.Call) ||
-                            (methodDef = method.Body.Instructions[i].Operand as MethodDef) == null ||
-                            !IsInlineMethod(methodDef, out var instructions) ||
-                            !IsCompatibleType(method.DeclaringType, methodDef.DeclaringType))
+                        if (
+                            !method.Body.Instructions[i].OpCode.Equals(OpCodes.Call)
+                            || (methodDef = method.Body.Instructions[i].Operand as MethodDef)
+                                == null
+                            || !IsInlineMethod(methodDef, out var instructions)
+                            || !IsCompatibleType(method.DeclaringType, methodDef.DeclaringType)
+                        )
                             continue;
                         count++;
                         method.Body.Instructions[i].OpCode = OpCodes.Nop;
@@ -56,15 +66,22 @@ namespace NETReactorSlayer.Core.Stages
                 }
                 catch { }
 
-            foreach (var instruction in from type in context.Module.GetTypes()
-                     from method in from x in type.Methods.ToArray() where x.HasBody && x.Body.HasInstructions select x
-                     from instruction in method.Body.Instructions
-                     select instruction)
+            foreach (
+                var instruction in from type in context.Module.GetTypes()
+                from method in from x in type.Methods.ToArray()
+                where x.HasBody && x.Body.HasInstructions
+                select x
+                from instruction in method.Body.Instructions
+                select instruction
+            )
                 try
                 {
                     MethodDef item;
-                    if (instruction.OpCode.OperandType == OperandType.InlineMethod &&
-                        (item = instruction.Operand as MethodDef) != null && proxies.Contains(item))
+                    if (
+                        instruction.OpCode.OperandType == OperandType.InlineMethod
+                        && (item = instruction.Operand as MethodDef) != null
+                        && proxies.Contains(item)
+                    )
                         proxies.Remove(item);
                 }
                 catch { }
@@ -90,9 +107,7 @@ namespace NETReactorSlayer.Core.Stages
                 if (code != Code.Ldfld)
                     return false;
                 instructions.Add(new Instruction(list[index - 1].OpCode, list[index - 1].Operand));
-                length = (from i in list
-                    where i.OpCode != OpCodes.Nop
-                    select i).Count() - 2;
+                length = (from i in list where i.OpCode != OpCodes.Nop select i).Count() - 2;
                 return length == 1 && length == method.Parameters.Count - 1;
             }
 
@@ -104,7 +119,10 @@ namespace NETReactorSlayer.Core.Stages
                 if (list[index - 2].IsLdcI4() && --length == method.Parameters.Count)
                 {
                     count = list.Count - 3;
-                    instructions.Insert(0, new Instruction(list[index - 2].OpCode, list[index - 2].Operand));
+                    instructions.Insert(
+                        0,
+                        new Instruction(list[index - 2].OpCode, list[index - 2].Operand)
+                    );
                 }
                 else
                     return false;
@@ -126,7 +144,6 @@ namespace NETReactorSlayer.Core.Stages
 
         private static bool IsCompatibleType(IType origType, IType newType) =>
             new SigComparer(SigComparerOptions.IgnoreModifiers).Equals(origType, newType);
-
 
         public static long InlinedMethods;
     }

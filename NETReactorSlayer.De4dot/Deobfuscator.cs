@@ -28,7 +28,10 @@ namespace NETReactorSlayer.De4dot
             else
                 RenamingOptions &= ~RenamingOptions.RemoveNamespaceIfOneType;
             if (options.RenameShort)
-                options.ValidNameRegex.Regexes.Insert(0, new NameRegex(DeobfuscatorInfo.ShortNameRegex));
+                options.ValidNameRegex.Regexes.Insert(
+                    0,
+                    new NameRegex(DeobfuscatorInfo.ShortNameRegex)
+                );
         }
 
         private bool CheckValidName(string name, Regex regex)
@@ -46,10 +49,13 @@ namespace NETReactorSlayer.De4dot
         {
             if (ns == null)
                 return false;
-            return ns.Contains(".") ? base.IsValidNamespaceName(ns) : CheckValidName(ns, IsRandomNameTypes);
+            return ns.Contains(".")
+                ? base.IsValidNamespaceName(ns)
+                : CheckValidName(ns, IsRandomNameTypes);
         }
 
-        public override bool IsValidTypeName(string name) => name != null && CheckValidName(name, IsRandomNameTypes);
+        public override bool IsValidTypeName(string name) =>
+            name != null && CheckValidName(name, IsRandomNameTypes);
 
         public override bool IsValidMethodName(string name) =>
             name != null && CheckValidName(name, IsRandomNameMembers);
@@ -57,9 +63,11 @@ namespace NETReactorSlayer.De4dot
         public override bool IsValidPropertyName(string name) =>
             name != null && CheckValidName(name, IsRandomNameMembers);
 
-        public override bool IsValidEventName(string name) => name != null && CheckValidName(name, IsRandomNameMembers);
+        public override bool IsValidEventName(string name) =>
+            name != null && CheckValidName(name, IsRandomNameMembers);
 
-        public override bool IsValidFieldName(string name) => name != null && CheckValidName(name, IsRandomNameMembers);
+        public override bool IsValidFieldName(string name) =>
+            name != null && CheckValidName(name, IsRandomNameMembers);
 
         public override bool IsValidGenericParamName(string name) =>
             name != null && CheckValidName(name, IsRandomNameMembers);
@@ -74,7 +82,9 @@ namespace NETReactorSlayer.De4dot
             name != null && CheckValidName(name, IsRandomNameMembers);
 
         private static readonly Regex IsRandomName = new(@"^[A-Z]{30,40}$");
-        private static readonly Regex IsRandomNameMembers = new(@"^(?:[a-zA-Z0-9]{9,11}|[a-zA-Z0-9]{18,20})$");
+        private static readonly Regex IsRandomNameMembers = new(
+            @"^(?:[a-zA-Z0-9]{9,11}|[a-zA-Z0-9]{18,20})$"
+        );
         private static readonly Regex IsRandomNameTypes = new(@"^[a-zA-Z0-9]{18,20}(?:`\d+)?$");
 
         public override string Name => DeobfuscatorInfo.TheName;

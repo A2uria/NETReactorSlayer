@@ -54,8 +54,10 @@ namespace NETReactorSlayer.Core.Stages
                     Cleaner.AddMethodToBeRemoved(_encryptedResource.DecrypterMethod);
                     Cleaner.AddResourceToBeRemoved(_encryptedResource.EmbeddedResource);
                 }
-                catch { count = InlineStringsDynamically(); }
-
+                catch
+                {
+                    count = InlineStringsDynamically();
+                }
 
                 if (count > 0)
                     Context.Logger.Info(count + " Strings decrypted.");
@@ -64,7 +66,9 @@ namespace NETReactorSlayer.Core.Stages
             }
             catch (Exception ex)
             {
-                Context.Logger.Error($"An unexpected error occurred during decrypting strings. {ex.Message}.");
+                Context.Logger.Error(
+                    $"An unexpected error occurred during decrypting strings. {ex.Message}."
+                );
             }
 
             _encryptedResource?.Dispose();
@@ -77,11 +81,18 @@ namespace NETReactorSlayer.Core.Stages
                 {
                     if (type.BaseType != null && type.BaseType.FullName != "System.Object")
                         continue;
-                    foreach (var method in from method in type.Methods
-                             where method.IsStatic && method.HasBody
-                             where DotNetUtils.IsMethod(method, "System.String", "(System.Int32)")
-                             where EncryptedResource.IsKnownDecrypter(method, new[] { "System.String" }, true)
-                             select method)
+                    foreach (
+                        var method in from method in type.Methods
+                        where method.IsStatic && method.HasBody
+                        where DotNetUtils.IsMethod(method, "System.String", "(System.Int32)")
+                        where
+                            EncryptedResource.IsKnownDecrypter(
+                                method,
+                                new[] { "System.String" },
+                                true
+                            )
+                        select method
+                    )
                     {
                         FindKeyIv(method);
 
@@ -89,12 +100,23 @@ namespace NETReactorSlayer.Core.Stages
 
                         try
                         {
-                            resource = new EncryptedResource(Context, method, new[] { "System.String" });
+                            resource = new EncryptedResource(
+                                Context,
+                                method,
+                                new[] { "System.String" }
+                            );
                             if (resource.EmbeddedResource != null)
                             {
-                                if (_decrypterMethods.Any(x => x.Value == resource.EmbeddedResource.Name) ||
-                                    _decrypterMethods.Count == 0)
-                                    _decrypterMethods.Add(resource.DecrypterMethod, resource.EmbeddedResource.Name);
+                                if (
+                                    _decrypterMethods.Any(x =>
+                                        x.Value == resource.EmbeddedResource.Name
+                                    )
+                                    || _decrypterMethods.Count == 0
+                                )
+                                    _decrypterMethods.Add(
+                                        resource.DecrypterMethod,
+                                        resource.EmbeddedResource.Name
+                                    );
 
                                 if (_encryptedResource == null)
                                     _encryptedResource = resource;
@@ -120,16 +142,22 @@ namespace NETReactorSlayer.Core.Stages
             {
                 "System.Byte[]",
                 "System.IO.MemoryStream",
-                "System.Security.Cryptography.CryptoStream"
+                "System.Security.Cryptography.CryptoStream",
             };
-            foreach (var instructions in from calledMethod in DotNetUtils.GetCalledMethods(Context.Module, method)
-                     where calledMethod.DeclaringType == method.DeclaringType
-                     where calledMethod.MethodSig.GetRetType().GetFullName() == "System.Byte[]"
-                     let localTypes = new LocalTypes(calledMethod)
-                     where localTypes.All(requiredTypes)
-                     select calledMethod.Body.Instructions)
+            foreach (
+                var instructions in from calledMethod in DotNetUtils.GetCalledMethods(
+                    Context.Module,
+                    method
+                )
+                where calledMethod.DeclaringType == method.DeclaringType
+                where calledMethod.MethodSig.GetRetType().GetFullName() == "System.Byte[]"
+                let localTypes = new LocalTypes(calledMethod)
+                where localTypes.All(requiredTypes)
+                select calledMethod.Body.Instructions
+            )
             {
-                byte[] newKey = null, newIv = null;
+                byte[] newKey = null,
+                    newIv = null;
                 for (var i = 0; i < instructions.Count && (newKey == null || newIv == null); i++)
                 {
                     var instr = instructions[i];
@@ -198,30 +226,49 @@ namespace NETReactorSlayer.Core.Stages
 
         private long InlineStringsStatically()
         {
-            bool IsDecrypterMethod(IMDTokenProvider method) => method != null &&
-                                                               _decrypterMethods.Any(x =>
-                                                                   x.Key.Equals(method) || x.Key.MDToken.ToInt32()
-                                                                       .Equals(method.MDToken.ToInt32()));
+            bool IsDecrypterMethod(IMDTokenProvider method) =>
+                method != null
+                && _decrypterMethods.Any(x =>
+                    x.Key.Equals(method) || x.Key.MDToken.ToInt32().Equals(method.MDToken.ToInt32())
+                );
 
             long count = 0;
-            foreach (var method in Context.Module.GetTypes().SelectMany(type =>
-                         (from x in type.Methods where x.HasBody && x.Body.HasInstructions select x)
-                         .ToArray()))
+            foreach (
+                var method in Context
+                    .Module.GetTypes()
+                    .SelectMany(type =>
+                        (
+                            from x in type.Methods
+                            where x.HasBody && x.Body.HasInstructions
+                            select x
+                        ).ToArray()
+                    )
+            )
             {
                 SimpleDeobfuscator.DeobfuscateBlocks(method);
                 for (var i = 0; i < method.Body.Instructions.Count; i++)
                     try
                     {
-                        if (!method.Body.Instructions[i].IsLdcI4() ||
-                            !method.Body.Instructions[i + 1].OpCode.Equals(OpCodes.Call))
+                        if (
+                            !method.Body.Instructions[i].IsLdcI4()
+                            || !method.Body.Instructions[i + 1].OpCode.Equals(OpCodes.Call)
+                        )
                             continue;
 
-                        var methodDef = ((IMethod)method.Body.Instructions[i + 1].Operand).ResolveMethodDef();
+                        var methodDef = (
+                            (IMethod)method.Body.Instructions[i + 1].Operand
+                        ).ResolveMethodDef();
                         if (methodDef != null && methodDef.HasReturnType != true)
                             continue;
 
-                        if (methodDef != null && (!methodDef.HasParams() || methodDef.Parameters.Count != 1 ||
-                                                  methodDef.Parameters[0].Type.FullName != "System.Int32"))
+                        if (
+                            methodDef != null
+                            && (
+                                !methodDef.HasParams()
+                                || methodDef.Parameters.Count != 1
+                                || methodDef.Parameters[0].Type.FullName != "System.Int32"
+                            )
+                        )
                             continue;
 
                         if (!IsDecrypterMethod(methodDef))
@@ -243,8 +290,7 @@ namespace NETReactorSlayer.Core.Stages
 
         private long InlineStringsDynamically()
         {
-            if ((Context.Info.NativeStub && Context.Info.NecroBit) ||
-                !Context.Info.UsesReflection)
+            if ((Context.Info.NativeStub && Context.Info.NecroBit) || !Context.Info.UsesReflection)
                 return 0;
 
             long count = 0;
@@ -253,54 +299,91 @@ namespace NETReactorSlayer.Core.Stages
 
             StacktracePatcher.Patch();
             foreach (var type in Context.Module.GetTypes())
-            foreach (var method in (from x in type.Methods where x.HasBody && x.Body.HasInstructions select x)
-                     .ToArray())
+            foreach (
+                var method in (
+                    from x in type.Methods
+                    where x.HasBody && x.Body.HasInstructions
+                    select x
+                ).ToArray()
+            )
                 for (var i = 0; i < method.Body.Instructions.Count; i++)
                     try
                     {
-                        if (!method.Body.Instructions[i].IsLdcI4() ||
-                            !method.Body.Instructions[i + 1].OpCode.Equals(OpCodes.Call))
+                        if (
+                            !method.Body.Instructions[i].IsLdcI4()
+                            || !method.Body.Instructions[i + 1].OpCode.Equals(OpCodes.Call)
+                        )
                             continue;
 
-                        var methodDef = ((IMethod)method.Body.Instructions[i + 1].Operand).ResolveMethodDef();
+                        var methodDef = (
+                            (IMethod)method.Body.Instructions[i + 1].Operand
+                        ).ResolveMethodDef();
                         if (!methodDef.HasReturnType)
                             continue;
 
-                        if (TypeEqualityComparer.Instance.Equals(method.DeclaringType, methodDef.DeclaringType))
+                        if (
+                            TypeEqualityComparer.Instance.Equals(
+                                method.DeclaringType,
+                                methodDef.DeclaringType
+                            )
+                        )
                             continue;
 
-                        if (methodDef.ReturnType.FullName != "System.String" &&
-                            !(methodDef.DeclaringType != null &&
-                              methodDef.DeclaringType == type &&
-                              methodDef.ReturnType.FullName == "System.Object"))
+                        if (
+                            methodDef.ReturnType.FullName != "System.String"
+                            && !(
+                                methodDef.DeclaringType != null
+                                && methodDef.DeclaringType == type
+                                && methodDef.ReturnType.FullName == "System.Object"
+                            )
+                        )
                             continue;
 
-                        if (!methodDef.HasParams() || methodDef.Parameters.Count != 1 ||
-                            methodDef.Parameters[0].Type.FullName != "System.Int32")
+                        if (
+                            !methodDef.HasParams()
+                            || methodDef.Parameters.Count != 1
+                            || methodDef.Parameters[0].Type.FullName != "System.Int32"
+                        )
                             continue;
 
-                        if (!methodDef.Body.Instructions.Any(x =>
-                                x.OpCode.Equals(OpCodes.Callvirt) && x.Operand.ToString()!
-                                    .Contains("System.Reflection.Assembly::GetManifestResourceStream")))
+                        if (
+                            !methodDef.Body.Instructions.Any(x =>
+                                x.OpCode.Equals(OpCodes.Callvirt)
+                                && x.Operand.ToString()!
+                                    .Contains(
+                                        "System.Reflection.Assembly::GetManifestResourceStream"
+                                    )
+                            )
+                        )
                             continue;
 
-                        var resourceName = DotNetUtils.GetCodeStrings(methodDef)
+                        var resourceName = DotNetUtils
+                            .GetCodeStrings(methodDef)
                             .FirstOrDefault(name =>
-                                Context.Assembly.GetManifestResourceNames().Any(x => x == name));
+                                Context.Assembly.GetManifestResourceNames().Any(x => x == name)
+                            );
 
                         if (resourceName == null)
                             continue;
 
-                        var result = (StacktracePatcher.PatchStackTraceGetMethod.MethodToReplace =
+                        var result = (
+                            StacktracePatcher.PatchStackTraceGetMethod.MethodToReplace =
                                 Context.Assembly.ManifestModule.ResolveMethod(
-                                    (int)methodDef.ResolveMethodDef().MDToken.Raw) as MethodInfo)
-                            .Invoke(null, new object[] { method.Body.Instructions[i].GetLdcI4Value() });
+                                    (int)methodDef.ResolveMethodDef().MDToken.Raw
+                                ) as MethodInfo
+                        ).Invoke(
+                            null,
+                            new object[] { method.Body.Instructions[i].GetLdcI4Value() }
+                        );
 
                         if (result is not string operand)
                             continue;
                         decrypterMethod ??= methodDef;
-                        if (encryptedResource == null &&
-                            DotNetUtils.GetResource(Context.Module, resourceName) is EmbeddedResource resource)
+                        if (
+                            encryptedResource == null
+                            && DotNetUtils.GetResource(Context.Module, resourceName)
+                                is EmbeddedResource resource
+                        )
                             encryptedResource = resource;
                         method.Body.Instructions[i].OpCode = OpCodes.Nop;
                         method.Body.Instructions[i + 1].OpCode = OpCodes.Ldstr;
@@ -317,14 +400,19 @@ namespace NETReactorSlayer.Core.Stages
             return count;
         }
 
-
         private IContext Context { get; set; }
-        private byte[] _key, _iv, _decryptedResource;
+        private byte[] _key,
+            _iv,
+            _decryptedResource;
         private EncryptedResource _encryptedResource;
         private readonly Dictionary<MethodDef, string> _decrypterMethods = new();
         private StringDecrypterVersion _stringDecrypterVersion;
 
-        private enum StringDecrypterVersion { V37, V38 }
+        private enum StringDecrypterVersion
+        {
+            V37,
+            V38,
+        }
 
         #region Nested Types
 

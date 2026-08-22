@@ -24,7 +24,9 @@ namespace NETReactorSlayer.De4dot.Renamer.AsmModules
         public MGenericParamDef(IMemberRef memberRef, int index)
             : base(memberRef, null, index) { }
 
-        public static List<MGenericParamDef> CreateGenericParamDefList(IEnumerable<GenericParam> parameters)
+        public static List<MGenericParamDef> CreateGenericParamDefList(
+            IEnumerable<GenericParam> parameters
+        )
         {
             var list = new List<MGenericParamDef>();
             if (parameters == null)

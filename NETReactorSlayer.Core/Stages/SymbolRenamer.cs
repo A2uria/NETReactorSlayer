@@ -24,8 +24,10 @@ namespace NETReactorSlayer.Core.Stages
         public void Run(IContext context)
         {
             context.Logger.Info("Renaming obfuscated symbols...");
-            var deobfuscator =
-                new DeobfuscatorInfo(context.Module, context.Options.RenameShort).CreateDeobfuscator();
+            var deobfuscator = new DeobfuscatorInfo(
+                context.Module,
+                context.Options.RenameShort
+            ).CreateDeobfuscator();
             var obfuscatedFile = new ObfuscatedFile(context.Module, deobfuscator);
             obfuscatedFile.DeobfuscatorOptions.RenamerFlags = context.Options.RenamerFlags;
             new Renamer(obfuscatedFile).Rename();

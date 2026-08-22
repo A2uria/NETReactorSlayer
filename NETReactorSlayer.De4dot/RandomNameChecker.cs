@@ -126,7 +126,11 @@ namespace NETReactorSlayer.De4dot
                 return true;
 
             for (var i = 2; i < typeWords.Count; i++)
-                if (IsDigit(typeWords[i - 1][0]) && IsLower(typeWords[i - 2][0]) && IsLower(typeWords[i][0]))
+                if (
+                    IsDigit(typeWords[i - 1][0])
+                    && IsLower(typeWords[i - 2][0])
+                    && IsLower(typeWords[i][0])
+                )
                     return true;
 
             if (hasTwoUpperWords && HasDigit(name))
@@ -142,7 +146,7 @@ namespace NETReactorSlayer.De4dot
             var words = new List<string>();
             var sb = new StringBuilder();
 
-            for (var i = 0; i < s.Length;)
+            for (var i = 0; i < s.Length; )
                 if (IsDigit(s[i]))
                 {
                     sb.Length = 0;
@@ -183,7 +187,9 @@ namespace NETReactorSlayer.De4dot
         private static bool CountNumbers(IEnumerable<string> words, int numbers)
         {
             var num = 0;
-            return words.Where(word => !string.IsNullOrEmpty(word)).Any(word => IsDigit(word[0]) && ++num >= numbers);
+            return words
+                .Where(word => !string.IsNullOrEmpty(word))
+                .Any(word => IsDigit(word[0]) && ++num >= numbers);
         }
 
         private static void CountTypeWords(IEnumerable<string> words, out int upper)

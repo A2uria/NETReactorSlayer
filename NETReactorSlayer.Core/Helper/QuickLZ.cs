@@ -28,7 +28,10 @@ namespace NETReactorSlayer.Core.Helper
             var decompressedLength = BitConverter.ToInt32(inData, 12);
             var isDataCompressed = BitConverter.ToInt32(inData, 16) == 1;
             const int headerLength = 32;
-            if (BitConverter.ToInt32(inData, 0) != sig || BitConverter.ToInt32(inData, compressedLength - 4) != sig)
+            if (
+                BitConverter.ToInt32(inData, 0) != sig
+                || BitConverter.ToInt32(inData, compressedLength - 4) != sig
+            )
                 throw new ApplicationException("No QCLZ sig");
 
             var outData = new byte[decompressedLength];

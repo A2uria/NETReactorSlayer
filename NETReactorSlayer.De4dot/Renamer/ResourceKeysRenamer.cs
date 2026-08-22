@@ -50,7 +50,10 @@ namespace NETReactorSlayer.De4dot.Renamer
 
         private EmbeddedResource GetResource(string resourceName)
         {
-            if (DotNetUtils.GetResource(_module, resourceName + ".resources") is EmbeddedResource resource)
+            if (
+                DotNetUtils.GetResource(_module, resourceName + ".resources")
+                is EmbeddedResource resource
+            )
                 return resource;
 
             var name = "";
@@ -59,7 +62,8 @@ namespace NETReactorSlayer.De4dot.Renamer
             foreach (var piece in pieces)
             {
                 name = piece + name;
-                resource = DotNetUtils.GetResource(_module, name + ".resources") as EmbeddedResource;
+                resource =
+                    DotNetUtils.GetResource(_module, name + ".resources") as EmbeddedResource;
                 if (resource != null)
                     return resource;
             }
@@ -86,8 +90,10 @@ namespace NETReactorSlayer.De4dot.Renamer
                     if (instr.OpCode.Code != Code.Newobj)
                         continue;
                     var ctor = instr.Operand as IMethod;
-                    if (ctor?.FullName !=
-                        "System.Void System.Resources.ResourceManager::.ctor(System.String,System.Reflection.Assembly)")
+                    if (
+                        ctor?.FullName
+                        != "System.Void System.Resources.ResourceManager::.ctor(System.String,System.Reflection.Assembly)"
+                    )
                         continue;
                     if (resourceName == null)
                         continue;
@@ -122,7 +128,11 @@ namespace NETReactorSlayer.De4dot.Renamer
 
             var outStream = new MemoryStream();
             ResourceWriter.Write(_module, outStream, resourceSet);
-            var newResource = new EmbeddedResource(resource.Name, outStream.ToArray(), resource.Attributes);
+            var newResource = new EmbeddedResource(
+                resource.Name,
+                outStream.ToArray(),
+                resource.Attributes
+            );
             var resourceIndex = _module.Resources.IndexOf(resource);
             if (resourceIndex < 0)
                 throw new ApplicationException("Could not find index of resource");
@@ -135,9 +145,11 @@ namespace NETReactorSlayer.De4dot.Renamer
             foreach (var info in renamed)
                 nameToInfo[info.Element.Name] = info;
 
-            foreach (var instrs in from method in type.Methods
-                     where method.Body != null
-                     select method.Body.Instructions)
+            foreach (
+                var instrs in from method in type.Methods
+                where method.Body != null
+                select method.Body.Instructions
+            )
                 for (var i = 0; i < instrs.Count; i++)
                 {
                     var call = instrs[i];
@@ -149,22 +161,14 @@ namespace NETReactorSlayer.De4dot.Renamer
                     int ldstrIndex;
                     switch (calledMethod.FullName)
                     {
-                        case
-                            "System.String System.Resources.ResourceManager::GetString(System.String,System.Globalization.CultureInfo)"
-                            :
-                        case
-                            "System.IO.UnmanagedMemoryStream System.Resources.ResourceManager::GetStream(System.String,System.Globalization.CultureInfo)"
-                            :
-                        case
-                            "System.Object System.Resources.ResourceManager::GetObject(System.String,System.Globalization.CultureInfo)"
-                            :
+                        case "System.String System.Resources.ResourceManager::GetString(System.String,System.Globalization.CultureInfo)":
+                        case "System.IO.UnmanagedMemoryStream System.Resources.ResourceManager::GetStream(System.String,System.Globalization.CultureInfo)":
+                        case "System.Object System.Resources.ResourceManager::GetObject(System.String,System.Globalization.CultureInfo)":
                             ldstrIndex = i - 2;
                             break;
 
                         case "System.String System.Resources.ResourceManager::GetString(System.String)":
-                        case
-                            "System.IO.UnmanagedMemoryStream System.Resources.ResourceManager::GetStream(System.String)"
-                            :
+                        case "System.IO.UnmanagedMemoryStream System.Resources.ResourceManager::GetStream(System.String)":
                         case "System.Object System.Resources.ResourceManager::GetObject(System.String)":
                             ldstrIndex = i - 1;
                             break;
@@ -207,7 +211,9 @@ namespace NETReactorSlayer.De4dot.Renamer
             {
                 if (piece.Length == 0)
                     continue;
-                var piece2 = piece.Substring(0, 1).ToUpperInvariant() + piece.Substring(1).ToLowerInvariant();
+                var piece2 =
+                    piece.Substring(0, 1).ToUpperInvariant()
+                    + piece.Substring(1).ToLowerInvariant();
                 var maxLen = ResourceKeyMaxLen - sb.Length;
                 if (maxLen <= 0)
                     break;
@@ -223,7 +229,7 @@ namespace NETReactorSlayer.De4dot.Renamer
 
         private string CreateName(Func<int, string> create)
         {
-            for (var counter = 0;; counter++)
+            for (var counter = 0; ; counter++)
             {
                 var newName = create(counter);
                 if (_newNames.ContainsKey(newName))

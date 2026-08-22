@@ -30,8 +30,11 @@ namespace NETReactorSlayer.De4dot.Renamer
                     return UnknownNameCreator.Create();
                 case GenericInstSig gis:
                 {
-                    if (gis.FullName == "System.Nullable`1" &&
-                        gis.GenericArguments.Count == 1 && gis.GenericArguments[0] != null)
+                    if (
+                        gis.FullName == "System.Nullable`1"
+                        && gis.GenericArguments.Count == 1
+                        && gis.GenericArguments[0] != null
+                    )
                         typeRef = gis.GenericArguments[0];
                     break;
                 }

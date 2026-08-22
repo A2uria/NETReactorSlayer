@@ -69,9 +69,15 @@ namespace NETReactorSlayer.Core
                     Info.NativeStub = true;
                     ModuleBytes = DeobUtils.ReadModule(Module);
 
-                    Process.Start(new ProcessStartInfo(Process.GetCurrentProcess().MainModule?.FileName,
-                            $"--del-temp {Process.GetCurrentProcess().Id} \"{Options.SourcePath}\"")
-                        { WindowStyle = ProcessWindowStyle.Hidden });
+                    Process.Start(
+                        new ProcessStartInfo(
+                            Process.GetCurrentProcess().MainModule?.FileName,
+                            $"--del-temp {Process.GetCurrentProcess().Id} \"{Options.SourcePath}\""
+                        )
+                        {
+                            WindowStyle = ProcessWindowStyle.Hidden,
+                        }
+                    );
 
                     Logger.Info("Native stub unpacked.");
                 }
@@ -121,7 +127,9 @@ namespace NETReactorSlayer.Core
             }
             catch (Exception ex)
             {
-                Logger.Error($"An unexpected error occurred during writing output file. {ex.Message}.");
+                Logger.Error(
+                    $"An unexpected error occurred during writing output file. {ex.Message}."
+                );
             }
         }
 

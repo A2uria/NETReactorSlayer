@@ -24,9 +24,12 @@ namespace NETReactorSlayer.De4dot.Renamer.AsmModules
         public override int GetHashCode() =>
             MethodEqualityComparer.CompareDeclaringTypes.GetHashCode(MethodDef.MethodDef);
 
-        public override bool Equals(object obj) => obj is MethodDefKey other &&
-                                                   MethodEqualityComparer.CompareDeclaringTypes.Equals(
-                                                       MethodDef.MethodDef, other.MethodDef.MethodDef);
+        public override bool Equals(object obj) =>
+            obj is MethodDefKey other
+            && MethodEqualityComparer.CompareDeclaringTypes.Equals(
+                MethodDef.MethodDef,
+                other.MethodDef.MethodDef
+            );
 
         public readonly MMethodDef MethodDef;
     }

@@ -27,13 +27,16 @@ namespace NETReactorSlayer.De4dot
         }
 
         public virtual IDeobfuscator CreateDeobfuscator() =>
-            new Deobfuscator(_module, new Deobfuscator.Options
-            {
-                ValidNameRegex = ValidNameRegex.Get(),
-                RestoreTypes = true,
-                RemoveNamespaces = true,
-                RenameShort = _renameShort
-            });
+            new Deobfuscator(
+                _module,
+                new Deobfuscator.Options
+                {
+                    ValidNameRegex = ValidNameRegex.Get(),
+                    RestoreTypes = true,
+                    RemoveNamespaces = true,
+                    RenameShort = _renameShort,
+                }
+            );
 
         private readonly ModuleDefMD _module;
         private readonly bool _renameShort;

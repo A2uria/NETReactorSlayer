@@ -37,7 +37,8 @@ namespace NETReactorSlayer.De4dot.Renamer
 
         public string CreateNamespace(TypeDef type, string ns)
         {
-            var asmFullName = type.Module.Assembly != null ? type.Module.Assembly.FullName : "<no assembly>";
+            var asmFullName =
+                type.Module.Assembly != null ? type.Module.Assembly.FullName : "<no assembly>";
 
             var key = $" [{type.Module.Location}] [{asmFullName}] [{type.Module.Name}] [{ns}] ";
             if (_namespaceToNewName.TryGetValue(key, out var newName))

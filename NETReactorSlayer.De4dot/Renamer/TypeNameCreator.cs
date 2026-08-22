@@ -38,7 +38,7 @@ namespace NETReactorSlayer.De4dot.Renamer
                 "Form",
                 "Dialog",
                 "Control",
-                "Stream"
+                "Stream",
             };
             foreach (var name in names)
                 _nameInfos.Add(name, CreateNameCreator(name));
@@ -65,8 +65,9 @@ namespace NETReactorSlayer.De4dot.Renamer
                             nameCreator = _createDelegateName;
                             break;
                         default:
-                            nameCreator = _nameInfos.Find(newBaseTypeName ?? typeDef.BaseType.Name.String) ??
-                                          _createClassName;
+                            nameCreator =
+                                _nameInfos.Find(newBaseTypeName ?? typeDef.BaseType.Name.String)
+                                ?? _createClassName;
                             break;
                     }
                 }

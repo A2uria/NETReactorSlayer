@@ -20,8 +20,7 @@ namespace NETReactorSlayer.De4dot
     public class NameRegexOption : Option
     {
         public NameRegexOption(string shortName, string longName, string description, string val)
-            : base(shortName, longName, description) =>
-            Default = _val = new NameRegexes(val);
+            : base(shortName, longName, description) => Default = _val = new NameRegexes(val);
 
         public override bool Set(string newVal, out string error)
         {

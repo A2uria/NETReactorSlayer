@@ -44,7 +44,8 @@ namespace NETReactorSlayer.De4dot.Renamer
 
         public MethodInfo Method(MMethodDef method) => _memberInfos.Method(method);
 
-        public GenericParamInfo GenericParam(MGenericParamDef gparam) => _memberInfos.GenericParam(gparam);
+        public GenericParamInfo GenericParam(MGenericParamDef gparam) =>
+            _memberInfos.GenericParam(gparam);
 
         public ParamInfo Param(MParamDef param) => _memberInfos.Param(param);
 
@@ -86,7 +87,9 @@ namespace NETReactorSlayer.De4dot.Renamer
                     Rename(state.GetTypeName(OldName, origClassName));
                 else
                 {
-                    var nameCreator = Type.IsGlobalType() ? state.GlobalTypeNameCreator : state.InternalTypeNameCreator;
+                    var nameCreator = Type.IsGlobalType()
+                        ? state.GlobalTypeNameCreator
+                        : state.InternalTypeNameCreator;
                     string newBaseType = null;
                     var baseInfo = GetBase();
                     if (baseInfo is { Renamed: true })
@@ -153,11 +156,13 @@ namespace NETReactorSlayer.De4dot.Renamer
 
                 var i = 0;
                 var nameFormat = HasFlagsAttribute() ? "flag_{0}" : "const_{0}";
-                foreach (var fieldInfo in from fieldDef in Type.AllFieldsSorted
-                         let fieldInfo = Field(fieldDef)
-                         where !fieldInfo.Renamed
-                         where fieldDef.FieldDef.IsStatic && fieldDef.FieldDef.IsLiteral
-                         select fieldInfo)
+                foreach (
+                    var fieldInfo in from fieldDef in Type.AllFieldsSorted
+                    let fieldInfo = Field(fieldDef)
+                    where !fieldInfo.Renamed
+                    where fieldDef.FieldDef.IsStatic && fieldDef.FieldDef.IsLiteral
+                    select fieldInfo
+                )
                 {
                     if (!checker.IsValidFieldName(fieldInfo.OldName))
                         fieldInfo.Rename(string.Format(nameFormat, i));
@@ -171,7 +176,10 @@ namespace NETReactorSlayer.De4dot.Renamer
                 if (fieldInfo.Renamed)
                     continue;
                 if (!checker.IsValidFieldName(fieldInfo.OldName))
-                    fieldInfo.Rename(fieldInfo.SuggestedName ?? VariableNameState.GetNewFieldName(fieldDef.FieldDef));
+                    fieldInfo.Rename(
+                        fieldInfo.SuggestedName
+                            ?? VariableNameState.GetNewFieldName(fieldDef.FieldDef)
+                    );
             }
         }
 
@@ -179,7 +187,9 @@ namespace NETReactorSlayer.De4dot.Renamer
             Type.AllFields.Where(fieldDef => !fieldDef.FieldDef.IsStatic).ToList();
 
         private bool HasFlagsAttribute() =>
-            Type.TypeDef.CustomAttributes.Any(attr => attr.AttributeType.FullName == "System.FlagsAttribute");
+            Type.TypeDef.CustomAttributes.Any(attr =>
+                attr.AttributeType.FullName == "System.FlagsAttribute"
+            );
 
         private void PrepareRenameProperties()
         {
@@ -249,7 +259,9 @@ namespace NETReactorSlayer.De4dot.Renamer
         public void PrepareRenameMethods()
         {
             MergeState();
-            foreach (var methodDef in Type.AllMethodsSorted.Where(methodDef => !methodDef.IsVirtual()))
+            foreach (
+                var methodDef in Type.AllMethodsSorted.Where(methodDef => !methodDef.IsVirtual())
+            )
                 RenameMethod(methodDef);
         }
 
@@ -259,7 +271,11 @@ namespace NETReactorSlayer.De4dot.Renamer
             foreach (var methodDef in Type.AllMethodsSorted)
             {
                 PrepareRenameMethodArgs(methodDef);
-                PrepareRenameGenericParams(methodDef.GenericParams, checker, methodDef.Owner?.GenericParams);
+                PrepareRenameGenericParams(
+                    methodDef.GenericParams,
+                    checker,
+                    methodDef.Owner?.GenericParams
+                );
             }
         }
 
@@ -283,13 +299,20 @@ namespace NETReactorSlayer.De4dot.Renamer
                 {
                     newVariableNameState = VariableNameState.CloneParamsOnly();
                     var checker = NameChecker;
-                    foreach (var paramDef in methodDef.ParamDefs.Where(paramDef => !paramDef.IsHiddenThisParameter))
+                    foreach (
+                        var paramDef in methodDef.ParamDefs.Where(paramDef =>
+                            !paramDef.IsHiddenThisParameter
+                        )
+                    )
                     {
                         info = Param(paramDef);
                         if (info.GotNewName())
                             continue;
                         if (!checker.IsValidMethodArgName(info.OldName))
-                            info.NewName = newVariableNameState.GetNewParamName(info.OldName, paramDef.ParameterDef);
+                            info.NewName = newVariableNameState.GetNewParamName(
+                                info.OldName,
+                                paramDef.ParameterDef
+                            );
                     }
                 }
             }
@@ -299,13 +322,22 @@ namespace NETReactorSlayer.De4dot.Renamer
                 if (!NameChecker.IsValidMethodReturnArgName(info.OldName))
                 {
                     newVariableNameState ??= VariableNameState.CloneParamsOnly();
-                    info.NewName =
-                        newVariableNameState.GetNewParamName(info.OldName, methodDef.ReturnParamDef.ParameterDef);
+                    info.NewName = newVariableNameState.GetNewParamName(
+                        info.OldName,
+                        methodDef.ReturnParamDef.ParameterDef
+                    );
                 }
 
-            if ((methodDef.Property == null || methodDef != methodDef.Property.SetMethod) &&
-                (methodDef.Event == null ||
-                 (methodDef != methodDef.Event.AddMethod && methodDef != methodDef.Event.RemoveMethod)))
+            if (
+                (methodDef.Property == null || methodDef != methodDef.Property.SetMethod)
+                && (
+                    methodDef.Event == null
+                    || (
+                        methodDef != methodDef.Event.AddMethod
+                        && methodDef != methodDef.Event.RemoveMethod
+                    )
+                )
+            )
                 return;
             {
                 if (methodDef.VisibleParameterCount <= 0)
@@ -366,13 +398,17 @@ namespace NETReactorSlayer.De4dot.Renamer
             info.Renamed = true;
 
             var isValidName = NameChecker.IsValidMethodName(info.OldName);
-            var isExternPInvoke = methodDef.MethodDef.ImplMap != null && methodDef.MethodDef.RVA == 0;
+            var isExternPInvoke =
+                methodDef.MethodDef.ImplMap != null && methodDef.MethodDef.RVA == 0;
             if (isValidName && !isExternPInvoke)
                 return;
             INameCreator nameCreator = null;
             var newName = info.SuggestedName;
             string newName2;
-            if (methodDef.MethodDef.ImplMap != null && !string.IsNullOrEmpty(newName2 = GetPinvokeName(methodDef)))
+            if (
+                methodDef.MethodDef.ImplMap != null
+                && !string.IsNullOrEmpty(newName2 = GetPinvokeName(methodDef))
+            )
                 newName = newName2;
             else if (methodDef.IsStatic())
                 nameCreator = VariableNameState.StaticMethodNameCreator;
@@ -387,8 +423,10 @@ namespace NETReactorSlayer.De4dot.Renamer
         {
             var entryPoint = methodDef.MethodDef.ImplMap.Name.String;
             if (Regex.IsMatch(entryPoint, @"^#\d+$"))
-                entryPoint = DotNetUtils.GetDllName(methodDef.MethodDef.ImplMap.Module.Name.String) + "_" +
-                             entryPoint.Substring(1);
+                entryPoint =
+                    DotNetUtils.GetDllName(methodDef.MethodDef.ImplMap.Module.Name.String)
+                    + "_"
+                    + entryPoint.Substring(1);
             return entryPoint;
         }
 
@@ -399,28 +437,46 @@ namespace NETReactorSlayer.De4dot.Renamer
                 return false;
             if (sig.RetType.ElementType != ElementType.Void)
                 return false;
-            return sig.Params[0].ElementType == ElementType.Object && sig.Params[1].FullName.Contains("EventArgs");
+            return sig.Params[0].ElementType == ElementType.Object
+                && sig.Params[1].FullName.Contains("EventArgs");
         }
 
-        private void PrepareRenameGenericParams(IEnumerable<MGenericParamDef> genericParams, INameChecker checker) =>
-            PrepareRenameGenericParams(genericParams, checker, null);
+        private void PrepareRenameGenericParams(
+            IEnumerable<MGenericParamDef> genericParams,
+            INameChecker checker
+        ) => PrepareRenameGenericParams(genericParams, checker, null);
 
-        private void PrepareRenameGenericParams(IEnumerable<MGenericParamDef> genericParams, INameChecker checker,
-            IEnumerable<MGenericParamDef> otherGenericParams)
+        private void PrepareRenameGenericParams(
+            IEnumerable<MGenericParamDef> genericParams,
+            INameChecker checker,
+            IEnumerable<MGenericParamDef> otherGenericParams
+        )
         {
             var usedNames = new Dictionary<string, bool>(StringComparer.Ordinal);
             var nameCreator = new GenericParamNameCreator();
 
             if (otherGenericParams != null)
-                foreach (var gpInfo in otherGenericParams.Select(param => _memberInfos.GenericParam(param)))
+                foreach (
+                    var gpInfo in otherGenericParams.Select(param =>
+                        _memberInfos.GenericParam(param)
+                    )
+                )
                     usedNames[gpInfo.NewName] = true;
 
-            foreach (var gpInfo in genericParams.Select(param => _memberInfos.GenericParam(param)).Where(gpInfo =>
-                         !checker.IsValidGenericParamName(gpInfo.OldName) || usedNames.ContainsKey(gpInfo.OldName)))
+            foreach (
+                var gpInfo in genericParams
+                    .Select(param => _memberInfos.GenericParam(param))
+                    .Where(gpInfo =>
+                        !checker.IsValidGenericParamName(gpInfo.OldName)
+                        || usedNames.ContainsKey(gpInfo.OldName)
+                    )
+            )
             {
                 string newName;
-                do { newName = nameCreator.Create(); }
-                while (usedNames.ContainsKey(newName));
+                do
+                {
+                    newName = nameCreator.Create();
+                } while (usedNames.ContainsKey(newName));
 
                 usedNames[newName] = true;
                 gpInfo.Rename(newName);
@@ -438,10 +494,12 @@ namespace NETReactorSlayer.De4dot.Renamer
             foreach (var methodDef in Type.AllMethods)
                 ourMethods.Add(methodDef.MethodDef, methodDef);
 
-            foreach (var instructions in from methodDef in Type.AllMethods
-                     where methodDef.MethodDef.Body != null
-                     where !methodDef.MethodDef.IsStatic && !methodDef.MethodDef.IsVirtual
-                     select methodDef.MethodDef.Body.Instructions)
+            foreach (
+                var instructions in from methodDef in Type.AllMethods
+                where methodDef.MethodDef.Body != null
+                where !methodDef.MethodDef.IsStatic && !methodDef.MethodDef.IsVirtual
+                select methodDef.MethodDef.Body.Instructions
+            )
                 for (var i = 2; i < instructions.Count; i++)
                 {
                     var call = instructions[i];
@@ -453,7 +511,10 @@ namespace NETReactorSlayer.De4dot.Renamer
                     var ldstr = instructions[i - 1];
                     if (ldstr.OpCode.Code != Code.Ldstr)
                         continue;
-                    if (ldstr.Operand is not string fieldName || !checker.IsValidFieldName(fieldName))
+                    if (
+                        ldstr.Operand is not string fieldName
+                        || !checker.IsValidFieldName(fieldName)
+                    )
                         continue;
 
                     var instr = instructions[i - 2];
@@ -493,8 +554,10 @@ namespace NETReactorSlayer.De4dot.Renamer
                     if (fieldInfo.Renamed)
                         continue;
 
-                    fieldInfo.SuggestedName =
-                        VariableNameState.GetNewFieldName(fieldInfo.OldName, new NameCreator2(fieldName));
+                    fieldInfo.SuggestedName = VariableNameState.GetNewFieldName(
+                        fieldInfo.OldName,
+                        new NameCreator2(fieldName)
+                    );
                 }
         }
 
@@ -563,7 +626,8 @@ namespace NETReactorSlayer.De4dot.Renamer
                 if (!checker.IsValidEventName(eventName))
                     continue;
 
-                _memberInfos.Method(handlerDef).SuggestedName = $"{_memberInfos.Property(propDef).NewName}_{eventName}";
+                _memberInfos.Method(handlerDef).SuggestedName =
+                    $"{_memberInfos.Property(propDef).NewName}_{eventName}";
             }
         }
 
@@ -588,7 +652,10 @@ namespace NETReactorSlayer.De4dot.Renamer
             var index = 0;
 
             var newobjIndex = FindInstruction(instructions, index, Code.Newobj);
-            if (newobjIndex == -1 || FindInstruction(instructions, newobjIndex + 1, Code.Newobj) != -1)
+            if (
+                newobjIndex == -1
+                || FindInstruction(instructions, newobjIndex + 1, Code.Newobj) != -1
+            )
                 return null;
             if (!IsEventHandlerCtor(instructions[newobjIndex].Operand as IMethod))
                 return null;
@@ -626,8 +693,12 @@ namespace NETReactorSlayer.De4dot.Renamer
             return eventName == "" ? null : handlerMethod;
         }
 
-        private static bool FindEventCall(IList<Instruction> instructions, ref int index, out IField field,
-            out IMethod calledMethod)
+        private static bool FindEventCall(
+            IList<Instruction> instructions,
+            ref int index,
+            out IField field,
+            out IMethod calledMethod
+        )
         {
             field = null;
             calledMethod = null;
@@ -658,15 +729,19 @@ namespace NETReactorSlayer.De4dot.Renamer
             return -1;
         }
 
-        private void InitFieldEventHandlers(FieldDefDictBase<MFieldDef> fieldDefDictBase,
-            MethodDefDictBase<MMethodDef> methodDefDictBase)
+        private void InitFieldEventHandlers(
+            FieldDefDictBase<MFieldDef> fieldDefDictBase,
+            MethodDefDictBase<MMethodDef> methodDefDictBase
+        )
         {
             var checker = NameChecker;
 
-            foreach (var instructions in from methodDef in Type.AllMethods
-                     where methodDef.MethodDef.Body != null
-                     where !methodDef.MethodDef.IsStatic
-                     select methodDef.MethodDef.Body.Instructions)
+            foreach (
+                var instructions in from methodDef in Type.AllMethods
+                where methodDef.MethodDef.Body != null
+                where !methodDef.MethodDef.IsStatic
+                select methodDef.MethodDef.Body.Instructions
+            )
                 for (var i = 0; i < instructions.Count - 6; i++)
                 {
                     if (instructions[i].GetParameterIndex() != 0)
@@ -735,12 +810,13 @@ namespace NETReactorSlayer.De4dot.Renamer
         {
             var checker = NameChecker;
 
-            foreach (var instructions in from methodDef in Type.AllMethods
-                     where methodDef.MethodDef.Body != null
-                     where !methodDef.MethodDef.IsStatic
-                     select methodDef.MethodDef
-                     into method
-                     select method.Body.Instructions)
+            foreach (
+                var instructions in from methodDef in Type.AllMethods
+                where methodDef.MethodDef.Body != null
+                where !methodDef.MethodDef.IsStatic
+                select methodDef.MethodDef into method
+                select method.Body.Instructions
+            )
                 for (var i = 0; i < instructions.Count - 5; i++)
                 {
                     if (instructions[i].GetParameterIndex() != 0)
@@ -799,8 +875,8 @@ namespace NETReactorSlayer.De4dot.Renamer
                 return false;
             if (method.Name != ".ctor")
                 return false;
-            return DotNetUtils.IsMethod(method, "System.Void", "(System.Object,System.IntPtr)") &&
-                   IsEventHandlerType(method.DeclaringType);
+            return DotNetUtils.IsMethod(method, "System.Void", "(System.Object,System.IntPtr)")
+                && IsEventHandlerType(method.DeclaringType);
         }
 
         private static bool IsEventHandlerType(IFullName fullName) =>
@@ -842,14 +918,21 @@ namespace NETReactorSlayer.De4dot.Renamer
 
         private void FindInitializeComponentMethod(MTypeDef type, MMethodDef possibleInitMethod)
         {
-            if ((from methodDef in type.AllMethods
+            if (
+                (
+                    from methodDef in type.AllMethods
                     where methodDef.MethodDef.Name == ".ctor"
                     where methodDef.MethodDef.Body != null
                     from instr in methodDef.MethodDef.Body.Instructions
                     where instr.OpCode.Code is Code.Call or Code.Callvirt
-                    select instr).Any(instr => MethodEqualityComparer.CompareDeclaringTypes.Equals(
-                    possibleInitMethod.MethodDef,
-                    instr.Operand as IMethod)))
+                    select instr
+                ).Any(instr =>
+                    MethodEqualityComparer.CompareDeclaringTypes.Equals(
+                        possibleInitMethod.MethodDef,
+                        instr.Operand as IMethod
+                    )
+                )
+            )
                 _memberInfos.Method(possibleInitMethod).SuggestedName = "InitializeComponent";
         }
 

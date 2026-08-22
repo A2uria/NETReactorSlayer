@@ -34,7 +34,10 @@ namespace NETReactorSlayer.De4dot.Renamer.AsmModules
         public void Add(MethodInst methodInst)
         {
             var key = methodInst.MethodRef;
-            if (methodInst.OrigMethodDef.IsNewSlot() || !_methodInstances.TryGetValue(key, out var list))
+            if (
+                methodInst.OrigMethodDef.IsNewSlot()
+                || !_methodInstances.TryGetValue(key, out var list)
+            )
                 _methodInstances[key] = list = new List<MethodInst>();
             list.Add(methodInst);
         }
@@ -47,7 +50,8 @@ namespace NETReactorSlayer.De4dot.Renamer.AsmModules
 
         public IEnumerable<List<MethodInst>> GetMethods() => _methodInstances.Values;
 
-        private readonly Dictionary<IMethodDefOrRef, List<MethodInst>> _methodInstances =
-            new(MethodEqualityComparer.DontCompareDeclaringTypes);
+        private readonly Dictionary<IMethodDefOrRef, List<MethodInst>> _methodInstances = new(
+            MethodEqualityComparer.DontCompareDeclaringTypes
+        );
     }
 }

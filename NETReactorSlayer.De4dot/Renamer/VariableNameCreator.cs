@@ -39,7 +39,7 @@ namespace NETReactorSlayer.De4dot.Renamer
                 { "System.UInt32", "uint" },
                 { "System.UInt64", "ulong" },
                 { "System.UIntPtr", "uintptr" },
-                { "System.Decimal", "decimal" }
+                { "System.Decimal", "decimal" },
             };
             OurFullNameToShortNamePrefix = new Dictionary<string, string>(StringComparer.Ordinal)
             {
@@ -58,7 +58,7 @@ namespace NETReactorSlayer.De4dot.Renamer
                 { "System.UInt32", "UInt" },
                 { "System.UInt64", "ULong" },
                 { "System.UIntPtr", "UIntPtr" },
-                { "System.Decimal", "Decimal" }
+                { "System.Decimal", "Decimal" },
             };
         }
 

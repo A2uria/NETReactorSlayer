@@ -19,6 +19,7 @@ namespace NETReactorSlayer.De4dot.Renamer
 {
     public class GenericParamInfo : MemberInfo
     {
-        public GenericParamInfo(Ref @ref) : base(@ref) { }
+        public GenericParamInfo(Ref @ref)
+            : base(@ref) { }
     }
 }

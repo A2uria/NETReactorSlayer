@@ -46,7 +46,9 @@ namespace NETReactorSlayer.Core.Stages
             }
             catch (Exception ex)
             {
-                Context.Logger.Error($"An unexpected error occurred during decrypting booleans. {ex.Message}.");
+                Context.Logger.Error(
+                    $"An unexpected error occurred during decrypting booleans. {ex.Message}."
+                );
             }
 
             _encryptedResource?.Dispose();
@@ -54,10 +56,15 @@ namespace NETReactorSlayer.Core.Stages
 
         private bool Find()
         {
-            foreach (var type in Context.Module.Types.Where(x =>
-                         x.BaseType is { FullName: "System.Object" }))
-                if (DotNetUtils.GetMethod(type, "System.Boolean", "(System.Int32)") is { } methodDef &&
-                    EncryptedResource.IsKnownDecrypter(methodDef, Array.Empty<string>(), true))
+            foreach (
+                var type in Context.Module.Types.Where(x =>
+                    x.BaseType is { FullName: "System.Object" }
+                )
+            )
+                if (
+                    DotNetUtils.GetMethod(type, "System.Boolean", "(System.Int32)") is { } methodDef
+                    && EncryptedResource.IsKnownDecrypter(methodDef, Array.Empty<string>(), true)
+                )
                 {
                     _encryptedResource = new EncryptedResource(Context, methodDef);
                     if (_encryptedResource.EmbeddedResource != null)
@@ -71,18 +78,28 @@ namespace NETReactorSlayer.Core.Stages
         private long InlineAllBooleans(byte[] bytes)
         {
             long count = 0;
-            foreach (var method in Context.Module.GetTypes().Where(x => x.HasMethods)
-                         .SelectMany(type => type.Methods.Where(x => x.HasBody && x.Body.HasInstructions)))
+            foreach (
+                var method in Context
+                    .Module.GetTypes()
+                    .Where(x => x.HasMethods)
+                    .SelectMany(type =>
+                        type.Methods.Where(x => x.HasBody && x.Body.HasInstructions)
+                    )
+            )
             {
                 for (var i = 0; i < method.Body.Instructions.Count; i++)
                     try
                     {
-                        if (!method.Body.Instructions[i].OpCode.Equals(OpCodes.Call) ||
-                            !method.Body.Instructions[i - 1].IsLdcI4() ||
-                            !method.Body.Instructions[i + 1].IsConditionalBranch())
+                        if (
+                            !method.Body.Instructions[i].OpCode.Equals(OpCodes.Call)
+                            || !method.Body.Instructions[i - 1].IsLdcI4()
+                            || !method.Body.Instructions[i + 1].IsConditionalBranch()
+                        )
                             continue;
-                        if (method.Body.Instructions[i].Operand is not IMethod iMethod ||
-                            iMethod != _encryptedResource.DecrypterMethod)
+                        if (
+                            method.Body.Instructions[i].Operand is not IMethod iMethod
+                            || iMethod != _encryptedResource.DecrypterMethod
+                        )
                             continue;
                         var offset = method.Body.Instructions[i - 1].GetLdcI4Value();
                         var value = Decrypt(offset, bytes);

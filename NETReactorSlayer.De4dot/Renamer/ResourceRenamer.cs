@@ -30,17 +30,21 @@ namespace NETReactorSlayer.De4dot.Renamer
 
         public void Rename(List<TypeInfo> renamedTypes)
         {
-            renamedTypes.Sort((a, b) =>
-            {
-                var aesc = EscapeTypeName(a.OldFullName);
-                var besc = EscapeTypeName(b.OldFullName);
-                return besc.Length != aesc.Length
-                    ? besc.Length.CompareTo(aesc.Length)
-                    : string.Compare(besc, aesc, StringComparison.Ordinal);
-            });
+            renamedTypes.Sort(
+                (a, b) =>
+                {
+                    var aesc = EscapeTypeName(a.OldFullName);
+                    var besc = EscapeTypeName(b.OldFullName);
+                    return besc.Length != aesc.Length
+                        ? besc.Length.CompareTo(aesc.Length)
+                        : string.Compare(besc, aesc, StringComparison.Ordinal);
+                }
+            );
 
-            _nameToResource =
-                new Dictionary<string, Resource>(_module.ModuleDefMd.Resources.Count * 3, StringComparer.Ordinal);
+            _nameToResource = new Dictionary<string, Resource>(
+                _module.ModuleDefMd.Resources.Count * 3,
+                StringComparer.Ordinal
+            );
             foreach (var resource in _module.ModuleDefMd.Resources)
             {
                 var name = resource.Name.String;
@@ -62,9 +66,11 @@ namespace NETReactorSlayer.De4dot.Renamer
             foreach (var info in renamedTypes)
                 oldNameToTypeInfo[EscapeTypeName(info.OldFullName)] = info;
 
-            foreach (var instrs in from method in _module.GetAllMethods()
-                     where method.HasBody
-                     select method.Body.Instructions)
+            foreach (
+                var instrs in from method in _module.GetAllMethods()
+                where method.HasBody
+                select method.Body.Instructions
+            )
                 for (var i = 0; i < instrs.Count; i++)
                 {
                     var instr = instrs[i];
@@ -81,14 +87,19 @@ namespace NETReactorSlayer.De4dot.Renamer
                         continue;
                     var newName = EscapeTypeName(typeInfo.Type.TypeDef.FullName);
 
-                    var renameCodeString = _module.ObfuscatedFile.RenameResourcesInCode ||
-                                           IsCallingResourceManagerCtor(instrs, i, typeInfo);
+                    var renameCodeString =
+                        _module.ObfuscatedFile.RenameResourcesInCode
+                        || IsCallingResourceManagerCtor(instrs, i, typeInfo);
                     if (renameCodeString)
                         instr.Operand = newName;
                 }
         }
 
-        private static bool IsCallingResourceManagerCtor(IList<Instruction> instrs, int ldstrIndex, TypeInfo typeInfo)
+        private static bool IsCallingResourceManagerCtor(
+            IList<Instruction> instrs,
+            int ldstrIndex,
+            TypeInfo typeInfo
+        )
         {
             try
             {
@@ -97,10 +108,17 @@ namespace NETReactorSlayer.De4dot.Renamer
                 var ldtoken = instrs[index++];
                 if (ldtoken.OpCode.Code != Code.Ldtoken)
                     return false;
-                if (!new SigComparer().Equals(typeInfo.Type.TypeDef, ldtoken.Operand as ITypeDefOrRef))
+                if (
+                    !new SigComparer().Equals(
+                        typeInfo.Type.TypeDef,
+                        ldtoken.Operand as ITypeDefOrRef
+                    )
+                )
                     return false;
 
-                if (!CheckCalledMethod(instrs[index++], "System.Type", "(System.RuntimeTypeHandle)"))
+                if (
+                    !CheckCalledMethod(instrs[index++], "System.Type", "(System.RuntimeTypeHandle)")
+                )
                     return false;
                 if (!CheckCalledMethod(instrs[index++], "System.Reflection.Assembly", "()"))
                     return false;
@@ -108,14 +126,24 @@ namespace NETReactorSlayer.De4dot.Renamer
                 var newobj = instrs[index];
                 if (newobj.OpCode.Code != Code.Newobj)
                     return false;
-                return newobj.Operand.ToString() ==
-                       "System.Void System.Resources.ResourceManager::.ctor(System.String,System.Reflection.Assembly)";
+                return newobj.Operand.ToString()
+                    == "System.Void System.Resources.ResourceManager::.ctor(System.String,System.Reflection.Assembly)";
             }
-            catch (ArgumentOutOfRangeException) { return false; }
-            catch (IndexOutOfRangeException) { return false; }
+            catch (ArgumentOutOfRangeException)
+            {
+                return false;
+            }
+            catch (IndexOutOfRangeException)
+            {
+                return false;
+            }
         }
 
-        private static bool CheckCalledMethod(Instruction instr, string returnType, string parameters)
+        private static bool CheckCalledMethod(
+            Instruction instr,
+            string returnType,
+            string parameters
+        )
         {
             if (instr.OpCode.Code != Code.Call && instr.OpCode.Code != Code.Callvirt)
                 return false;

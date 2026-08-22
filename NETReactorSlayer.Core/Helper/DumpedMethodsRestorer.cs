@@ -42,7 +42,12 @@ namespace NETReactorSlayer.Core.Helper
         }
 
         public bool GetMethodBody(
-            uint rid, RVA rva, IList<Parameter> parameters, GenericParamContext gpContext, out MethodBody methodBody)
+            uint rid,
+            RVA rva,
+            IList<Parameter> parameters,
+            GenericParamContext gpContext,
+            out MethodBody methodBody
+        )
         {
             var dm = GetDumpedMethod(rid);
             if (dm == null)
@@ -51,8 +56,17 @@ namespace NETReactorSlayer.Core.Helper
                 return false;
             }
 
-            methodBody = MethodBodyReader.CreateCilBody(_module, dm.code, dm.extraSections, parameters, dm.mhFlags,
-                dm.mhMaxStack, dm.mhCodeSize, dm.mhLocalVarSigTok, gpContext);
+            methodBody = MethodBodyReader.CreateCilBody(
+                _module,
+                dm.code,
+                dm.extraSections,
+                parameters,
+                dm.mhFlags,
+                dm.mhMaxStack,
+                dm.mhCodeSize,
+                dm.mhLocalVarSigTok,
+                gpContext
+            );
             return true;
         }
 
@@ -65,13 +79,23 @@ namespace NETReactorSlayer.Core.Helper
                 return false;
             }
 
-            row = new RawMethodRow(dm.mdRVA, dm.mdImplFlags, dm.mdFlags, dm.mdName, dm.mdSignature, dm.mdParamList);
+            row = new RawMethodRow(
+                dm.mdRVA,
+                dm.mdImplFlags,
+                dm.mdFlags,
+                dm.mdName,
+                dm.mdSignature,
+                dm.mdParamList
+            );
             return true;
         }
 
         private readonly DumpedMethods _dumpedMethods;
         private ModuleDefMD _module;
 
-        public ModuleDefMD Module { set => _module = value; }
+        public ModuleDefMD Module
+        {
+            set => _module = value;
+        }
     }
 }

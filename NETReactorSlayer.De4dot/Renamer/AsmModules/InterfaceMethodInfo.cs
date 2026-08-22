@@ -37,8 +37,11 @@ namespace NETReactorSlayer.De4dot.Renamer.AsmModules
 
         public void Merge(InterfaceMethodInfo other)
         {
-            foreach (var key in other.IfaceMethodToClassMethod.Keys.Where(
-                         key => other.IfaceMethodToClassMethod[key] != null))
+            foreach (
+                var key in other.IfaceMethodToClassMethod.Keys.Where(key =>
+                    other.IfaceMethodToClassMethod[key] != null
+                )
+            )
             {
                 if (IfaceMethodToClassMethod[key] != null)
                     throw new ApplicationException("Interface method already initialized");

@@ -26,27 +26,40 @@ namespace NETReactorSlayer.Core.Helper
     {
         public static long RemoveCalls(IContext context, MethodDef methodToRem)
         {
-            _methodRefInfos = new MethodDefAndDeclaringTypeDict<MethodDefAndDeclaringTypeDict<bool>>();
-            foreach (var methodDef in context.Module.GetTypes()
-                         .SelectMany(type => type.Methods.Where(x => x.HasBody && x.Body.HasInstructions)))
+            _methodRefInfos =
+                new MethodDefAndDeclaringTypeDict<MethodDefAndDeclaringTypeDict<bool>>();
+            foreach (
+                var methodDef in context
+                    .Module.GetTypes()
+                    .SelectMany(type =>
+                        type.Methods.Where(x => x.HasBody && x.Body.HasInstructions)
+                    )
+            )
                 Add(methodDef, methodToRem);
 
-            return context.Module.GetTypes()
-                .Sum(type => type.Methods.Where(x => x.HasBody && x.Body.HasInstructions)
-                    .Sum(method => RemoveCalls(method, _methodRefInfos.Find(method))));
+            return context
+                .Module.GetTypes()
+                .Sum(type =>
+                    type.Methods.Where(x => x.HasBody && x.Body.HasInstructions)
+                        .Sum(method => RemoveCalls(method, _methodRefInfos.Find(method)))
+                );
         }
 
         public static long RemoveCalls(IContext context, List<MethodDef> methods)
         {
-            _methodRefInfos = new MethodDefAndDeclaringTypeDict<MethodDefAndDeclaringTypeDict<bool>>();
+            _methodRefInfos =
+                new MethodDefAndDeclaringTypeDict<MethodDefAndDeclaringTypeDict<bool>>();
             foreach (var type in context.Module.GetTypes())
             foreach (var method in type.Methods.Where(x => x.HasBody && x.Body.HasInstructions))
             foreach (var methodToRem in methods)
                 Add(method, methodToRem);
 
-            return context.Module.GetTypes().Sum(type =>
-                type.Methods.Where(x => x.HasBody && x.Body.HasInstructions)
-                    .Sum(method => RemoveCalls(method, _methodRefInfos.Find(method))));
+            return context
+                .Module.GetTypes()
+                .Sum(type =>
+                    type.Methods.Where(x => x.HasBody && x.Body.HasInstructions)
+                        .Sum(method => RemoveCalls(method, _methodRefInfos.Find(method)))
+                );
         }
 
         private static long RemoveCalls(MethodDef method, MethodDefDictBase<bool> info)
@@ -80,11 +93,11 @@ namespace NETReactorSlayer.Core.Helper
         }
 
         private static bool CheckMethod(IMethod methodToBeRemoved) =>
-            methodToBeRemoved.MethodSig.Params.Count == 0 &&
-            methodToBeRemoved.MethodSig.RetType.ElementType ==
-            ElementType.Void;
+            methodToBeRemoved.MethodSig.Params.Count == 0
+            && methodToBeRemoved.MethodSig.RetType.ElementType == ElementType.Void;
 
-
-        private static MethodDefAndDeclaringTypeDict<MethodDefAndDeclaringTypeDict<bool>> _methodRefInfos;
+        private static MethodDefAndDeclaringTypeDict<
+            MethodDefAndDeclaringTypeDict<bool>
+        > _methodRefInfos;
     }
 }

@@ -78,13 +78,17 @@ namespace NETReactorSlayer.De4dot.Renamer.AsmModules
                 {
                     var methodDef = resolver.ResolveMethod(memberRef);
                     if (methodDef != null)
-                        _methodRefsToRename.Add(new RefToDef<MemberRef, MethodDef>(memberRef, methodDef.MethodDef));
+                        _methodRefsToRename.Add(
+                            new RefToDef<MemberRef, MethodDef>(memberRef, methodDef.MethodDef)
+                        );
                 }
                 else if (memberRef.IsFieldRef)
                 {
                     var fieldDef = resolver.ResolveField(memberRef);
                     if (fieldDef != null)
-                        _fieldRefsToRename.Add(new RefToDef<MemberRef, FieldDef>(memberRef, fieldDef.FieldDef));
+                        _fieldRefsToRename.Add(
+                            new RefToDef<MemberRef, FieldDef>(memberRef, fieldDef.FieldDef)
+                        );
                 }
 
             foreach (var cattr in _memberRefFinder.CustomAttributes.Keys)
@@ -104,7 +108,9 @@ namespace NETReactorSlayer.De4dot.Renamer.AsmModules
                         if (fieldDef == null)
                             continue;
 
-                        _customAttributeFieldRefs.Add(new CustomAttributeRef(cattr, i, fieldDef.FieldDef));
+                        _customAttributeFieldRefs.Add(
+                            new CustomAttributeRef(cattr, i, fieldDef.FieldDef)
+                        );
                     }
                     else
                     {
@@ -112,7 +118,9 @@ namespace NETReactorSlayer.De4dot.Renamer.AsmModules
                         if (propDef == null)
                             continue;
 
-                        _customAttributePropertyRefs.Add(new CustomAttributeRef(cattr, i, propDef.PropertyDef));
+                        _customAttributePropertyRefs.Add(
+                            new CustomAttributeRef(cattr, i, propDef.PropertyDef)
+                        );
                     }
                 }
             }
@@ -122,9 +130,16 @@ namespace NETReactorSlayer.De4dot.Renamer.AsmModules
         {
             while (typeDef != null)
             {
-                foreach (var fieldDef in typeDef.AllFields.Where(fieldDef => fieldDef.FieldDef.Name == name)
-                             .Where(fieldDef =>
-                                 new SigComparer().Equals(fieldDef.FieldDef.FieldSig.GetFieldType(), fieldType)))
+                foreach (
+                    var fieldDef in typeDef
+                        .AllFields.Where(fieldDef => fieldDef.FieldDef.Name == name)
+                        .Where(fieldDef =>
+                            new SigComparer().Equals(
+                                fieldDef.FieldDef.FieldSig.GetFieldType(),
+                                fieldType
+                            )
+                        )
+                )
                     return fieldDef;
 
                 if (typeDef.BaseType == null)
@@ -135,13 +150,24 @@ namespace NETReactorSlayer.De4dot.Renamer.AsmModules
             return null;
         }
 
-        private static MPropertyDef FindProperty(MTypeDef typeDef, UTF8String name, TypeSig propType)
+        private static MPropertyDef FindProperty(
+            MTypeDef typeDef,
+            UTF8String name,
+            TypeSig propType
+        )
         {
             while (typeDef != null)
             {
-                foreach (var propDef in typeDef.AllProperties.Where(propDef => propDef.PropertyDef.Name == name)
-                             .Where(propDef =>
-                                 new SigComparer().Equals(propDef.PropertyDef.PropertySig.GetRetType(), propType)))
+                foreach (
+                    var propDef in typeDef
+                        .AllProperties.Where(propDef => propDef.PropertyDef.Name == name)
+                        .Where(propDef =>
+                            new SigComparer().Equals(
+                                propDef.PropertyDef.PropertySig.GetRetType(),
+                                propType
+                            )
+                        )
+                )
                     return propDef;
 
                 if (typeDef.BaseType == null)
@@ -174,7 +200,8 @@ namespace NETReactorSlayer.De4dot.Renamer.AsmModules
             return gis?.GenericType == null ? typeRef : gis.GenericType.TypeDefOrRef;
         }
 
-        public MTypeDef ResolveType(ITypeDefOrRef typeRef) => _types.Find(GetNonGenericTypeRef(typeRef));
+        public MTypeDef ResolveType(ITypeDefOrRef typeRef) =>
+            _types.Find(GetNonGenericTypeRef(typeRef));
 
         public MMethodDef ResolveMethod(IMethodDefOrRef methodRef)
         {
@@ -191,21 +218,25 @@ namespace NETReactorSlayer.De4dot.Renamer.AsmModules
         private readonly List<CustomAttributeRef> _customAttributeFieldRefs = new();
         private readonly List<CustomAttributeRef> _customAttributePropertyRefs = new();
 
-        private readonly IList<RefToDef<MemberRef, FieldDef>>
-            _fieldRefsToRename = new List<RefToDef<MemberRef, FieldDef>>();
+        private readonly IList<RefToDef<MemberRef, FieldDef>> _fieldRefsToRename =
+            new List<RefToDef<MemberRef, FieldDef>>();
 
         private readonly IList<RefToDef<MemberRef, MethodDef>> _methodRefsToRename =
             new List<RefToDef<MemberRef, MethodDef>>();
 
-        private readonly IList<RefToDef<TypeRef, TypeDef>> _typeRefsToRename = new List<RefToDef<TypeRef, TypeDef>>();
+        private readonly IList<RefToDef<TypeRef, TypeDef>> _typeRefsToRename =
+            new List<RefToDef<TypeRef, TypeDef>>();
 
         private List<MethodDef> _allMethods;
         private MemberFinder _memberRefFinder;
         private TypeDefDict _types = new();
-        public IEnumerable<CustomAttributeRef> CustomAttributeFieldRefs => _customAttributeFieldRefs;
-        public IEnumerable<CustomAttributeRef> CustomAttributePropertyRefs => _customAttributePropertyRefs;
+        public IEnumerable<CustomAttributeRef> CustomAttributeFieldRefs =>
+            _customAttributeFieldRefs;
+        public IEnumerable<CustomAttributeRef> CustomAttributePropertyRefs =>
+            _customAttributePropertyRefs;
         public IEnumerable<RefToDef<MemberRef, FieldDef>> FieldRefsToRename => _fieldRefsToRename;
-        public IEnumerable<RefToDef<MemberRef, MethodDef>> MethodRefsToRename => _methodRefsToRename;
+        public IEnumerable<RefToDef<MemberRef, MethodDef>> MethodRefsToRename =>
+            _methodRefsToRename;
 
         public ModuleDefMD ModuleDefMd => ObfuscatedFile.ModuleDefMd;
         public IObfuscatedFile ObfuscatedFile { get; }
@@ -226,7 +257,9 @@ namespace NETReactorSlayer.De4dot.Renamer.AsmModules
             public IMemberRef Reference;
         }
 
-        public class RefToDef<TR, TD> where TR : ICodedToken where TD : ICodedToken
+        public class RefToDef<TR, TD>
+            where TR : ICodedToken
+            where TD : ICodedToken
         {
             public RefToDef(TR reference, TD definition)
             {

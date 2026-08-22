@@ -45,21 +45,22 @@ namespace NETReactorSlayer.De4dot
         public bool RemoveNamespaceWithOneType =>
             (Deobfuscator.RenamingOptions & RenamingOptions.RemoveNamespaceIfOneType) != 0;
 
-        public bool RenameResourceKeys => (Deobfuscator.RenamingOptions & RenamingOptions.RenameResourceKeys) != 0;
+        public bool RenameResourceKeys =>
+            (Deobfuscator.RenamingOptions & RenamingOptions.RenameResourceKeys) != 0;
         public bool RenameResourcesInCode => Deobfuscator.TheOptions.RenameResourcesInCode;
 
         public class Options
         {
             public RenamerFlags RenamerFlags =
-                RenamerFlags.RenameNamespaces |
-                RenamerFlags.RenameTypes |
-                RenamerFlags.RenameEvents |
-                RenamerFlags.RenameFields |
-                RenamerFlags.RenameMethods |
-                RenamerFlags.RenameMethodArgs |
-                RenamerFlags.RenameGenericParams |
-                RenamerFlags.RestoreEventsFromNames |
-                RenamerFlags.RestoreEvents;
+                RenamerFlags.RenameNamespaces
+                | RenamerFlags.RenameTypes
+                | RenamerFlags.RenameEvents
+                | RenamerFlags.RenameFields
+                | RenamerFlags.RenameMethods
+                | RenamerFlags.RenameMethodArgs
+                | RenamerFlags.RenameGenericParams
+                | RenamerFlags.RestoreEventsFromNames
+                | RenamerFlags.RestoreEvents;
         }
     }
 }

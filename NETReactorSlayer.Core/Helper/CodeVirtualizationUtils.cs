@@ -39,20 +39,28 @@ namespace NETReactorSlayer.Core.Helper
                 "System.Boolean",
                 "System.IntPtr",
                 "System.UIntPtr",
-                "System.Char"
+                "System.Char",
             };
 
-            foreach (var method in context.Module.GetTypes()
-                         .SelectMany(type => type.Methods.Where(x => x.HasBody && x.Body.HasInstructions)))
+            foreach (
+                var method in context
+                    .Module.GetTypes()
+                    .SelectMany(type =>
+                        type.Methods.Where(x => x.HasBody && x.Body.HasInstructions)
+                    )
+            )
                 try
                 {
                     if (method.Body.Instructions.Count(x => x.OpCode.Equals(OpCodes.Switch)) != 2)
                         continue;
                     if (method.Body.Instructions.Count(x => x.OpCode.Equals(OpCodes.Ldtoken)) < 15)
                         continue;
-                    var operands = method.Body.Instructions
-                        .Where(x => x.OpCode.Equals(OpCodes.Ldtoken) && x.Operand != null)
-                        .Select(x => x.Operand.ToString()).ToList();
+                    var operands = method
+                        .Body.Instructions.Where(x =>
+                            x.OpCode.Equals(OpCodes.Ldtoken) && x.Operand != null
+                        )
+                        .Select(x => x.Operand.ToString())
+                        .ToList();
                     if (array.Any(item => !operands.Contains(item)))
                         continue;
 

@@ -28,8 +28,13 @@ namespace NETReactorSlayer.Core.Stages
             Context = context;
             bool antiTamper = false,
                 antiDebugger = false;
-            foreach (var method in Context.Module.GetTypes()
-                         .SelectMany(type => type.Methods.Where(x => x.HasBody && x.Body.HasInstructions)))
+            foreach (
+                var method in Context
+                    .Module.GetTypes()
+                    .SelectMany(type =>
+                        type.Methods.Where(x => x.HasBody && x.Body.HasInstructions)
+                    )
+            )
             {
                 if (RemoveAntiTamper(method))
                     antiTamper = true;
@@ -75,7 +80,6 @@ namespace NETReactorSlayer.Core.Stages
             Context.Logger.Info("Anti debugger removed.");
             return true;
         }
-
 
         private IContext Context { get; set; }
     }

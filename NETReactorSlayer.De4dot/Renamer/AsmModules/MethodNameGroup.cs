@@ -33,23 +33,33 @@ namespace NETReactorSlayer.De4dot.Renamer.AsmModules
 
         public bool HasInterfaceMethod() => Methods.Any(method => method.Owner.TypeDef.IsInterface);
 
-        public bool HasGetterOrSetterPropertyMethod() => (from method in Methods
-            where method.Property != null
-            let prop = method.Property
-            where method == prop.GetMethod || method == prop.SetMethod
-            select method).Any();
+        public bool HasGetterOrSetterPropertyMethod() =>
+            (
+                from method in Methods
+                where method.Property != null
+                let prop = method.Property
+                where method == prop.GetMethod || method == prop.SetMethod
+                select method
+            ).Any();
 
-        public bool HasAddRemoveOrRaiseEventMethod() => (from method in Methods
-            where method.Event != null
-            let evt = method.Event
-            where method == evt.AddMethod || method == evt.RemoveMethod || method == evt.RaiseMethod
-            select method).Any();
+        public bool HasAddRemoveOrRaiseEventMethod() =>
+            (
+                from method in Methods
+                where method.Event != null
+                let evt = method.Event
+                where
+                    method == evt.AddMethod
+                    || method == evt.RemoveMethod
+                    || method == evt.RaiseMethod
+                select method
+            ).Any();
 
         public bool HasProperty() => Methods.Any(method => method.Property != null);
 
         public bool HasEvent() => Methods.Any(method => method.Event != null);
 
-        public override string ToString() => $"{Methods.Count} -- {(Methods.Count > 0 ? Methods[0].ToString() : "")}";
+        public override string ToString() =>
+            $"{Methods.Count} -- {(Methods.Count > 0 ? Methods[0].ToString() : "")}";
 
         public int Count => Methods.Count;
 

@@ -46,7 +46,11 @@ namespace NETReactorSlayer.De4dot
                 switch (type.ElementType)
                 {
                     case ElementType.GenericInst:
-                        if (((GenericInstSig)type).GenericArguments.Any(ga => !IsValidType(provider, ga)))
+                        if (
+                            ((GenericInstSig)type).GenericArguments.Any(ga =>
+                                !IsValidType(provider, ga)
+                            )
+                        )
                             return false;
                         break;
 
@@ -120,7 +124,9 @@ namespace NETReactorSlayer.De4dot
 
         private void AddAllFields()
         {
-            foreach (var field in _module.GetTypes().SelectMany(type => type.Fields.Where(IsUnknownType)))
+            foreach (
+                var field in _module.GetTypes().SelectMany(type => type.Fields.Where(IsUnknownType))
+            )
                 _fieldWrites[field] = new TypeInfo<FieldDef>(field);
         }
 
@@ -145,22 +151,27 @@ namespace NETReactorSlayer.De4dot
             {
                 _methodReturnInfo = new TypeInfo<Parameter>(method.Parameters.ReturnParameter);
                 DeobfuscateMethod(method);
-                if (!_methodReturnInfo.CanUpdateType(_module) &&
-                    _argInfos.Values.Count(info => info.CanUpdateType(_module)) <= 0)
+                if (
+                    !_methodReturnInfo.CanUpdateType(_module)
+                    && _argInfos.Values.Count(info => info.CanUpdateType(_module)) <= 0
+                )
                     continue;
                 methods.Add(method);
                 modified = true;
             }
 
-            foreach (var instr in _allMethods.Where(x => x.HasBody && x.Body.HasInstructions)
-                         .SelectMany(method => method.Body.Instructions.Where(x => x.Operand != null)))
+            foreach (
+                var instr in _allMethods
+                    .Where(x => x.HasBody && x.Body.HasInstructions)
+                    .SelectMany(method => method.Body.Instructions.Where(x => x.Operand != null))
+            )
                 try
                 {
                     if (instr.Operand is not IMethod calledMethod)
                         continue;
-                    var methodDef = methods
-                        .FirstOrDefault(x => MethodEqualityComparer.CompareDeclaringTypes
-                            .Equals(calledMethod, x));
+                    var methodDef = methods.FirstOrDefault(x =>
+                        MethodEqualityComparer.CompareDeclaringTypes.Equals(calledMethod, x)
+                    );
                     if (methodDef == null)
                         continue;
                     instr.Operand = methodDef;
@@ -209,8 +220,13 @@ namespace NETReactorSlayer.De4dot
                                 continue;
                             if (!_fieldWrites.TryGetValue(field, out info))
                                 continue;
-                            fieldType = GetLoadedType(info.Arg.DeclaringType, method, instructions, i,
-                                out var wasNewobj);
+                            fieldType = GetLoadedType(
+                                info.Arg.DeclaringType,
+                                method,
+                                instructions,
+                                i,
+                                out var wasNewobj
+                            );
                             if (fieldType == null)
                                 continue;
                             info.Add(fieldType, wasNewobj);
@@ -230,14 +246,21 @@ namespace NETReactorSlayer.De4dot
                             if (calledMethodDefOrRef == null)
                                 continue;
 
-                            IList<TypeSig> calledMethodArgs = DotNetUtils.GetArgs(calledMethodDefOrRef);
+                            IList<TypeSig> calledMethodArgs = DotNetUtils.GetArgs(
+                                calledMethodDefOrRef
+                            );
                             calledMethodArgs = DotNetUtils.ReplaceGenericParameters(
-                                calledMethodDefOrRef.DeclaringType.TryGetGenericInstSig(), calledMethodSpec,
-                                calledMethodArgs);
+                                calledMethodDefOrRef.DeclaringType.TryGetGenericInstSig(),
+                                calledMethodSpec,
+                                calledMethodArgs
+                            );
                             for (var j = 0; j < pushedArgs.NumValidArgs; j++)
                             {
                                 var pushInstr = pushedArgs.GetEnd(j);
-                                if (pushInstr.OpCode.Code != Code.Ldfld && pushInstr.OpCode.Code != Code.Ldsfld)
+                                if (
+                                    pushInstr.OpCode.Code != Code.Ldfld
+                                    && pushInstr.OpCode.Code != Code.Ldsfld
+                                )
                                     continue;
 
                                 field = pushInstr.Operand as IField;
@@ -281,8 +304,11 @@ namespace NETReactorSlayer.De4dot
             var fixReturnType = IsUnknownType(method.MethodSig.GetRetType());
 
             _argInfos.Clear();
-            foreach (var arg in method.Parameters.Where(arg => !arg.IsHiddenThisParameter)
-                         .Where(IsUnknownType))
+            foreach (
+                var arg in method
+                    .Parameters.Where(arg => !arg.IsHiddenThisParameter)
+                    .Where(IsUnknownType)
+            )
                 _argInfos[arg] = new TypeInfo<Parameter>(arg);
             if (_argInfos.Count == 0 && !fixReturnType)
                 return;
@@ -324,8 +350,14 @@ namespace NETReactorSlayer.De4dot
                                 case Code.Ldarg_1:
                                 case Code.Ldarg_2:
                                 case Code.Ldarg_3:
-                                    AddMethodArgType(method, GetParameter(methodParams, ldInstr),
-                                        DotNetUtils.GetArg(calledMethodParams, calledMethodParamIndex));
+                                    AddMethodArgType(
+                                        method,
+                                        GetParameter(methodParams, ldInstr),
+                                        DotNetUtils.GetArg(
+                                            calledMethodParams,
+                                            calledMethodParamIndex
+                                        )
+                                    );
                                     break;
                             }
                         }
@@ -336,8 +368,11 @@ namespace NETReactorSlayer.De4dot
                         pushedArgs = MethodStack.GetPushedArgInstructions(instructions, i);
                         if (pushedArgs.NumValidArgs < 1)
                             break;
-                        AddMethodArgType(method, GetParameter(methodParams, pushedArgs.GetEnd(0)),
-                            instr.Operand as ITypeDefOrRef);
+                        AddMethodArgType(
+                            method,
+                            GetParameter(methodParams, pushedArgs.GetEnd(0)),
+                            instr.Operand as ITypeDefOrRef
+                        );
                         break;
 
                     case Code.Stloc:
@@ -349,16 +384,22 @@ namespace NETReactorSlayer.De4dot
                         pushedArgs = MethodStack.GetPushedArgInstructions(instructions, i);
                         if (pushedArgs.NumValidArgs < 1)
                             break;
-                        AddMethodArgType(method, GetParameter(methodParams, pushedArgs.GetEnd(0)),
-                            instr.GetLocal(method.Body.Variables));
+                        AddMethodArgType(
+                            method,
+                            GetParameter(methodParams, pushedArgs.GetEnd(0)),
+                            instr.GetLocal(method.Body.Variables)
+                        );
                         break;
 
                     case Code.Stsfld:
                         pushedArgs = MethodStack.GetPushedArgInstructions(instructions, i);
                         if (pushedArgs.NumValidArgs < 1)
                             break;
-                        AddMethodArgType(method, GetParameter(methodParams, pushedArgs.GetEnd(0)),
-                            instr.Operand as IField);
+                        AddMethodArgType(
+                            method,
+                            GetParameter(methodParams, pushedArgs.GetEnd(0)),
+                            instr.Operand as IField
+                        );
                         break;
 
                     case Code.Stfld:
@@ -366,10 +407,17 @@ namespace NETReactorSlayer.De4dot
                         if (pushedArgs.NumValidArgs >= 1)
                         {
                             var field = instr.Operand as IField;
-                            AddMethodArgType(method, GetParameter(methodParams, pushedArgs.GetEnd(0)), field);
+                            AddMethodArgType(
+                                method,
+                                GetParameter(methodParams, pushedArgs.GetEnd(0)),
+                                field
+                            );
                             if (pushedArgs.NumValidArgs >= 2 && field != null)
-                                AddMethodArgType(method, GetParameter(methodParams, pushedArgs.GetEnd(1)),
-                                    field.DeclaringType);
+                                AddMethodArgType(
+                                    method,
+                                    GetParameter(methodParams, pushedArgs.GetEnd(1)),
+                                    field.DeclaringType
+                                );
                         }
 
                         break;
@@ -379,8 +427,11 @@ namespace NETReactorSlayer.De4dot
                         pushedArgs = MethodStack.GetPushedArgInstructions(instructions, i);
                         if (pushedArgs.NumValidArgs < 1)
                             break;
-                        AddMethodArgType(method, GetParameter(methodParams, pushedArgs.GetEnd(0)),
-                            instr.Operand as IField);
+                        AddMethodArgType(
+                            method,
+                            GetParameter(methodParams, pushedArgs.GetEnd(0)),
+                            instr.Operand as IField
+                        );
                         break;
 
                     case Code.Starg:
@@ -442,24 +493,39 @@ namespace NETReactorSlayer.De4dot
 
         private void AddMethods(IEnumerable<MethodDef> methods) => _allMethods.AddRange(methods);
 
-        private void AddMethodArgType(IGenericParameterProvider provider, Parameter methodParam, IField field)
+        private void AddMethodArgType(
+            IGenericParameterProvider provider,
+            Parameter methodParam,
+            IField field
+        )
         {
             if (field == null)
                 return;
             AddMethodArgType(provider, methodParam, field.FieldSig.GetFieldType());
         }
 
-        private void AddMethodArgType(IGenericParameterProvider provider, Parameter methodParam, IVariable variable)
+        private void AddMethodArgType(
+            IGenericParameterProvider provider,
+            Parameter methodParam,
+            IVariable variable
+        )
         {
             if (variable == null)
                 return;
             AddMethodArgType(provider, methodParam, variable.Type);
         }
 
-        private void AddMethodArgType(IGenericParameterProvider provider, Parameter methodParam, ITypeDefOrRef type) =>
-            AddMethodArgType(provider, methodParam, type.ToTypeSig());
+        private void AddMethodArgType(
+            IGenericParameterProvider provider,
+            Parameter methodParam,
+            ITypeDefOrRef type
+        ) => AddMethodArgType(provider, methodParam, type.ToTypeSig());
 
-        private void AddMethodArgType(IGenericParameterProvider provider, Parameter methodParam, TypeSig type)
+        private void AddMethodArgType(
+            IGenericParameterProvider provider,
+            Parameter methodParam,
+            TypeSig type
+        )
         {
             if (methodParam == null || type == null)
                 return;
@@ -492,32 +558,49 @@ namespace NETReactorSlayer.De4dot
             }
         }
 
-        private TypeSig GetLoadedType(IGenericParameterProvider provider, MethodDef method,
+        private TypeSig GetLoadedType(
+            IGenericParameterProvider provider,
+            MethodDef method,
             IList<Instruction> instructions,
-            int instrIndex, out bool wasNewobj)
+            int instrIndex,
+            out bool wasNewobj
+        )
         {
-            var fieldType = MethodStack.GetLoadedType(method, instructions, instrIndex, out wasNewobj);
+            var fieldType = MethodStack.GetLoadedType(
+                method,
+                instructions,
+                instrIndex,
+                out wasNewobj
+            );
             if (fieldType == null || !IsValidType(provider, fieldType))
                 return null;
             return fieldType;
         }
 
-        private static TypeSig GetCommonBaseClass(ModuleDef module, TypeSig typeSig1, TypeSig typeSig2)
+        private static TypeSig GetCommonBaseClass(
+            ModuleDef module,
+            TypeSig typeSig1,
+            TypeSig typeSig2
+        )
         {
-            if (DotNetUtils.IsDelegate(typeSig1) &&
-                DotNetUtils.DerivesFromDelegate(module.Find(typeSig2.ToTypeDefOrRef())))
+            if (
+                DotNetUtils.IsDelegate(typeSig1)
+                && DotNetUtils.DerivesFromDelegate(module.Find(typeSig2.ToTypeDefOrRef()))
+            )
                 return typeSig2;
-            if (DotNetUtils.IsDelegate(typeSig2) &&
-                DotNetUtils.DerivesFromDelegate(module.Find(typeSig1.ToTypeDefOrRef())))
+            if (
+                DotNetUtils.IsDelegate(typeSig2)
+                && DotNetUtils.DerivesFromDelegate(module.Find(typeSig1.ToTypeDefOrRef()))
+            )
                 return typeSig1;
             return null;
         }
 
-
         private readonly Dictionary<Parameter, TypeInfo<Parameter>> _argInfos = new();
 
-        private readonly Dictionary<IField, TypeInfo<FieldDef>> _fieldWrites =
-            new(FieldEqualityComparer.CompareDeclaringTypes);
+        private readonly Dictionary<IField, TypeInfo<FieldDef>> _fieldWrites = new(
+            FieldEqualityComparer.CompareDeclaringTypes
+        );
 
         private readonly ModuleDef _module;
         private readonly Dictionary<int, UpdatedMethod> _updatedMethods = new();
@@ -528,7 +611,8 @@ namespace NETReactorSlayer.De4dot
 
         private class UpdatedMethod
         {
-            public UpdatedMethod(IMethod method) => NewArgTypes = new TypeSig[DotNetUtils.GetArgsCount(method)];
+            public UpdatedMethod(IMethod method) =>
+                NewArgTypes = new TypeSig[DotNetUtils.GetArgsCount(method)];
 
             public readonly TypeSig[] NewArgTypes;
         }

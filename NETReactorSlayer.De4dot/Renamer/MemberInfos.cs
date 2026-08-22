@@ -26,11 +26,14 @@ namespace NETReactorSlayer.De4dot.Renamer
 
         public TypeInfo Type(MTypeDef t) => _allTypeInfos[t];
 
-        public bool TryGetType(MTypeDef t, out TypeInfo info) => _allTypeInfos.TryGetValue(t, out info);
+        public bool TryGetType(MTypeDef t, out TypeInfo info) =>
+            _allTypeInfos.TryGetValue(t, out info);
 
-        public bool TryGetEvent(MEventDef e, out EventInfo info) => _allEventInfos.TryGetValue(e, out info);
+        public bool TryGetEvent(MEventDef e, out EventInfo info) =>
+            _allEventInfos.TryGetValue(e, out info);
 
-        public bool TryGetProperty(MPropertyDef p, out PropertyInfo info) => _allPropertyInfos.TryGetValue(p, out info);
+        public bool TryGetProperty(MPropertyDef p, out PropertyInfo info) =>
+            _allPropertyInfos.TryGetValue(p, out info);
 
         public PropertyInfo Property(MPropertyDef prop) => _allPropertyInfos[prop];
 
@@ -40,7 +43,8 @@ namespace NETReactorSlayer.De4dot.Renamer
 
         public MethodInfo Method(MMethodDef method) => _allMethodInfos[method];
 
-        public GenericParamInfo GenericParam(MGenericParamDef gparam) => _allGenericParamInfos[gparam];
+        public GenericParamInfo GenericParam(MGenericParamDef gparam) =>
+            _allGenericParamInfos[gparam];
 
         public ParamInfo Param(MParamDef param) => _allParamInfos[param];
 
@@ -80,7 +84,8 @@ namespace NETReactorSlayer.De4dot.Renamer
         private readonly Dictionary<MEventDef, EventInfo> _allEventInfos = new();
         private readonly Dictionary<MFieldDef, FieldInfo> _allFieldInfos = new();
 
-        private readonly Dictionary<MGenericParamDef, GenericParamInfo> _allGenericParamInfos = new();
+        private readonly Dictionary<MGenericParamDef, GenericParamInfo> _allGenericParamInfos =
+            new();
 
         private readonly Dictionary<MMethodDef, MethodInfo> _allMethodInfos = new();
         private readonly Dictionary<MParamDef, ParamInfo> _allParamInfos = new();
@@ -182,7 +187,7 @@ namespace NETReactorSlayer.De4dot.Renamer
             "System.Windows.Forms.TreeView",
             "System.ComponentModel.Design.ObjectSelectorEditor.Selector",
             "System.Windows.Forms.WebBrowserBase",
-            "System.Windows.Forms.WebBrowser"
+            "System.Windows.Forms.WebBrowser",
         };
     }
 }

@@ -93,7 +93,11 @@ namespace NETReactorSlayer.Core.Helper
                 : null;
         }
 
-        public static bool IsKnownDecrypter(MethodDef method, IList<string> additionalTypes, bool checkResource)
+        public static bool IsKnownDecrypter(
+            MethodDef method,
+            IList<string> additionalTypes,
+            bool checkResource
+        )
         {
             SimpleDeobfuscator.Deobfuscate(method);
             if (checkResource)
@@ -101,8 +105,11 @@ namespace NETReactorSlayer.Core.Helper
                 if (!method.HasBody || !method.Body.HasInstructions)
                     return false;
 
-                if (!DotNetUtils.GetCodeStrings(method)
-                        .Any(x => DotNetUtils.GetResource(method.Module, x) is EmbeddedResource))
+                if (
+                    !DotNetUtils
+                        .GetCodeStrings(method)
+                        .Any(x => DotNetUtils.GetResource(method.Module, x) is EmbeddedResource)
+                )
                     return false;
             }
 
@@ -116,11 +123,12 @@ namespace NETReactorSlayer.Core.Helper
             if (DecrypterV3.CouldBeResourceDecrypter(localTypes, additionalTypes))
                 return true;
 
-            return DecrypterV4.CouldBeResourceDecrypter(method, localTypes, additionalTypes) ||
-                   DecrypterV2.CouldBeResourceDecrypter(localTypes, additionalTypes);
+            return DecrypterV4.CouldBeResourceDecrypter(method, localTypes, additionalTypes)
+                || DecrypterV2.CouldBeResourceDecrypter(localTypes, additionalTypes);
         }
 
-        private static byte[] GetDecryptionKey(MethodDef method) => ArrayFinder.GetInitializedByteArray(method, 32);
+        private static byte[] GetDecryptionKey(MethodDef method) =>
+            ArrayFinder.GetInitializedByteArray(method, 32);
 
         private static byte[] GetDecryptionIV(MethodDef method)
         {
@@ -132,8 +140,10 @@ namespace NETReactorSlayer.Core.Helper
             if (!UsesPublicKeyToken(method))
                 return bytes;
 
-            if (method.Module.Assembly.PublicKeyToken is not { } publicKeyToken ||
-                publicKeyToken.Data.Length == 0)
+            if (
+                method.Module.Assembly.PublicKeyToken is not { } publicKeyToken
+                || publicKeyToken.Data.Length == 0
+            )
                 return bytes;
 
             for (var i = 0; i < 8; i++)
@@ -165,9 +175,12 @@ namespace NETReactorSlayer.Core.Helper
             if (method?.Body == null)
                 return false;
 
-            return (from instr in method.Body.Instructions
-                    where instr.OpCode.Code is Code.Call or Code.Callvirt or Code.Newobj
-                    select instr.Operand).OfType<IMethod>()
+            return (
+                from instr in method.Body.Instructions
+                where instr.OpCode.Code is Code.Call or Code.Callvirt or Code.Newobj
+                select instr.Operand
+            )
+                .OfType<IMethod>()
                 .Any(calledMethod => calledMethod.FullName.Contains(fullName));
         }
 
@@ -175,17 +188,19 @@ namespace NETReactorSlayer.Core.Helper
         {
             value = 0;
 
-            if (!instruction.IsLdcI4() &&
-                !instruction.OpCode.Equals(OpCodes.Ldc_I8) &&
-                !instruction.OpCode.Equals(OpCodes.Ldc_R4) &&
-                !instruction.OpCode.Equals(OpCodes.Ldc_R8))
+            if (
+                !instruction.IsLdcI4()
+                && !instruction.OpCode.Equals(OpCodes.Ldc_I8)
+                && !instruction.OpCode.Equals(OpCodes.Ldc_R4)
+                && !instruction.OpCode.Equals(OpCodes.Ldc_R8)
+            )
                 return false;
 
             try
             {
-                value = instruction.IsLdcI4() ?
-                    instruction.GetLdcI4Value() :
-                    Convert.ToInt32(instruction.Operand);
+                value = instruction.IsLdcI4()
+                    ? instruction.GetLdcI4Value()
+                    : Convert.ToInt32(instruction.Operand);
 
                 return true;
             }
@@ -200,7 +215,11 @@ namespace NETReactorSlayer.Core.Helper
         private IList<string> AdditionalTypes { get; }
         private IDecrypter Decrypter { get; set; }
 
-        public enum DecrypterVersion { V69, V6X }
+        public enum DecrypterVersion
+        {
+            V69,
+            V6X,
+        }
 
         private interface IDecrypter
         {
@@ -217,8 +236,11 @@ namespace NETReactorSlayer.Core.Helper
                 _iv = GetDecryptionIV(method);
             }
 
-            public static bool CouldBeResourceDecrypter(MethodDef method, StringCounts stringCounts,
-                IEnumerable<string> additionalTypes)
+            public static bool CouldBeResourceDecrypter(
+                MethodDef method,
+                StringCounts stringCounts,
+                IEnumerable<string> additionalTypes
+            )
             {
                 var requiredTypes = new[]
                 {
@@ -228,7 +250,7 @@ namespace NETReactorSlayer.Core.Helper
                         "System.Security.Cryptography.CryptoStream",
                         "System.Security.Cryptography.ICryptoTransform",
                         "System.String",
-                        "System.Boolean"
+                        "System.Boolean",
                     },
                     new List<string>
                     {
@@ -236,28 +258,43 @@ namespace NETReactorSlayer.Core.Helper
                         "System.IO.Stream",
                         "System.Int32",
                         "System.Byte[]",
-                        "System.Boolean"
+                        "System.Boolean",
                     },
                     new List<string>
                     {
                         "System.Security.Cryptography.ICryptoTransform",
                         "System.Int32",
                         "System.Byte[]",
-                        "System.Boolean"
-                    }
+                        "System.Boolean",
+                    },
                 };
                 requiredTypes[0].AddRange(additionalTypes);
 
-                if (stringCounts.All(requiredTypes[0]) ||
-                    stringCounts.All(requiredTypes[1]) ||
-                    (stringCounts.All(requiredTypes[2]) && method.Body.Instructions.Any(x =>
-                        x.OpCode.Equals(OpCodes.Newobj) && x.Operand != null && x.Operand.ToString()!
-                            .Contains("System.Security.Cryptography.CryptoStream::.ctor"))))
-                    return DotNetUtils.GetMethod(method.DeclaringType,
-                        "System.Security.Cryptography.SymmetricAlgorithm",
-                        "()") == null || (!stringCounts.Exists("System.UInt64") &&
-                                          (!stringCounts.Exists("System.UInt32") ||
-                                           stringCounts.Exists("System.Reflection.Assembly")));
+                if (
+                    stringCounts.All(requiredTypes[0])
+                    || stringCounts.All(requiredTypes[1])
+                    || (
+                        stringCounts.All(requiredTypes[2])
+                        && method.Body.Instructions.Any(x =>
+                            x.OpCode.Equals(OpCodes.Newobj)
+                            && x.Operand != null
+                            && x.Operand.ToString()!
+                                .Contains("System.Security.Cryptography.CryptoStream::.ctor")
+                        )
+                    )
+                )
+                    return DotNetUtils.GetMethod(
+                            method.DeclaringType,
+                            "System.Security.Cryptography.SymmetricAlgorithm",
+                            "()"
+                        ) == null
+                        || (
+                            !stringCounts.Exists("System.UInt64")
+                            && (
+                                !stringCounts.Exists("System.UInt32")
+                                || stringCounts.Exists("System.Reflection.Assembly")
+                            )
+                        );
 
                 return false;
             }
@@ -265,8 +302,8 @@ namespace NETReactorSlayer.Core.Helper
             public byte[] Decrypt(EmbeddedResource resource) =>
                 DeobUtils.AesDecrypt(resource.CreateReader().ToArray(), _key, _iv);
 
-
-            private readonly byte[] _key, _iv;
+            private readonly byte[] _key,
+                _iv;
         }
 
         private class DecrypterV2 : IDecrypter
@@ -281,14 +318,12 @@ namespace NETReactorSlayer.Core.Helper
                     throw new ApplicationException("Could not initialize decrypter");
             }
 
-            public static bool CouldBeResourceDecrypter(StringCounts stringCounts,
-                IEnumerable<string> additionalTypes)
+            public static bool CouldBeResourceDecrypter(
+                StringCounts stringCounts,
+                IEnumerable<string> additionalTypes
+            )
             {
-                var requiredTypes = new List<string>
-                {
-                    "System.Int32",
-                    "System.Byte[]"
-                };
+                var requiredTypes = new List<string> { "System.Int32", "System.Byte[]" };
                 requiredTypes.AddRange(additionalTypes);
                 return stringCounts.All(requiredTypes);
             }
@@ -319,11 +354,22 @@ namespace NETReactorSlayer.Core.Helper
             private bool Initialize()
             {
                 var origInstrs = _decrypterMethod.Body.Instructions;
-                if (!Find(origInstrs, out var emuStartIndex, out var emuEndIndex, out _emuLocal) &&
-                    !FindStartEnd(origInstrs, out emuStartIndex, out emuEndIndex, out _emuLocal))
+                if (
+                    !Find(origInstrs, out var emuStartIndex, out var emuEndIndex, out _emuLocal)
+                    && !FindStartEnd(origInstrs, out emuStartIndex, out emuEndIndex, out _emuLocal)
+                )
                 {
-                    if (!FindStartEnd2(ref origInstrs, out emuStartIndex, out emuEndIndex, out _emuLocal, out _emuArg,
-                            ref _emuMethod, ref _locals))
+                    if (
+                        !FindStartEnd2(
+                            ref origInstrs,
+                            out emuStartIndex,
+                            out emuEndIndex,
+                            out _emuLocal,
+                            out _emuArg,
+                            ref _emuMethod,
+                            ref _locals
+                        )
+                    )
                         return false;
                     _isNewDecrypter = true;
                 }
@@ -354,7 +400,12 @@ namespace NETReactorSlayer.Core.Helper
                 }
             }
 
-            private bool Find(IList<Instruction> instrs, out int startIndex, out int endIndex, out Local tmpLocal)
+            private bool Find(
+                IList<Instruction> instrs,
+                out int startIndex,
+                out int endIndex,
+                out Local tmpLocal
+            )
             {
                 startIndex = 0;
                 endIndex = 0;
@@ -386,16 +437,26 @@ namespace NETReactorSlayer.Core.Helper
                 return false;
             }
 
-            private bool FindStart(IList<Instruction> instrs, out int startIndex, out Local tmpLocal)
+            private bool FindStart(
+                IList<Instruction> instrs,
+                out int startIndex,
+                out Local tmpLocal
+            )
             {
                 var i = 0;
                 while (i + 8 < instrs.Count)
                 {
                     Local local;
-                    if (instrs[i].OpCode.Code.Equals(Code.Conv_U) && instrs[i + 1].OpCode.Code.Equals(Code.Ldelem_U1) &&
-                        instrs[i + 2].OpCode.Code.Equals(Code.Or) && CheckLocal(instrs[i + 3], false) != null &&
-                        (local = CheckLocal(instrs[i + 4], true)) != null && CheckLocal(instrs[i + 5], true) != null &&
-                        instrs[i + 6].OpCode.Code.Equals(Code.Add) && CheckLocal(instrs[i + 7], false) == local)
+                    if (
+                        instrs[i].OpCode.Code.Equals(Code.Conv_U)
+                        && instrs[i + 1].OpCode.Code.Equals(Code.Ldelem_U1)
+                        && instrs[i + 2].OpCode.Code.Equals(Code.Or)
+                        && CheckLocal(instrs[i + 3], false) != null
+                        && (local = CheckLocal(instrs[i + 4], true)) != null
+                        && CheckLocal(instrs[i + 5], true) != null
+                        && instrs[i + 6].OpCode.Code.Equals(Code.Add)
+                        && CheckLocal(instrs[i + 7], false) == local
+                    )
                     {
                         var instr = instrs[i + 8];
                         var newStartIndex = i + 8;
@@ -421,24 +482,32 @@ namespace NETReactorSlayer.Core.Helper
                 return false;
             }
 
-            private bool FindStartEnd(IList<Instruction> instrs, out int startIndex, out int endIndex,
-                out Local tmpLocal)
+            private bool FindStartEnd(
+                IList<Instruction> instrs,
+                out int startIndex,
+                out int endIndex,
+                out Local tmpLocal
+            )
             {
                 var i = 0;
                 while (i + 8 < instrs.Count)
                 {
-                    if (instrs[i].OpCode.Code.Equals(Code.Conv_R_Un) &&
-                        instrs[i + 1].OpCode.Code.Equals(Code.Conv_R8) &&
-                        instrs[i + 2].OpCode.Code.Equals(Code.Conv_U4) &&
-                        instrs[i + 3].OpCode.Code.Equals(Code.Add))
+                    if (
+                        instrs[i].OpCode.Code.Equals(Code.Conv_R_Un)
+                        && instrs[i + 1].OpCode.Code.Equals(Code.Conv_R8)
+                        && instrs[i + 2].OpCode.Code.Equals(Code.Conv_U4)
+                        && instrs[i + 3].OpCode.Code.Equals(Code.Add)
+                    )
                     {
                         var newEndIndex = i + 3;
                         var newStartIndex = -1;
                         for (var x = newEndIndex; x > 0; x--)
                             if (instrs[x].OpCode.FlowControl != FlowControl.Next)
                             {
-                                if (instrs[x].OpCode.Equals(OpCodes.Bne_Un) ||
-                                    instrs[x].OpCode.Equals(OpCodes.Bne_Un_S))
+                                if (
+                                    instrs[x].OpCode.Equals(OpCodes.Bne_Un)
+                                    || instrs[x].OpCode.Equals(OpCodes.Bne_Un_S)
+                                )
                                 {
                                     _decrypterVersion = DecrypterVersion.V69;
                                     continue;
@@ -466,7 +535,6 @@ namespace NETReactorSlayer.Core.Helper
                                 break;
                             }
 
-
                         if (newStartIndex >= 0)
                         {
                             var checkLocs = new List<Local>();
@@ -491,22 +559,34 @@ namespace NETReactorSlayer.Core.Helper
                 return false;
             }
 
-            private static bool FindStartEnd2(ref IList<Instruction> instrs, out int startIndex, out int endIndex,
-                out Local tmpLocal, out Parameter tmpArg, ref MethodDef methodDef, ref List<Local> locals)
+            private static bool FindStartEnd2(
+                ref IList<Instruction> instrs,
+                out int startIndex,
+                out int endIndex,
+                out Local tmpLocal,
+                out Parameter tmpArg,
+                ref MethodDef methodDef,
+                ref List<Local> locals
+            )
             {
                 foreach (var instr in instrs)
                 {
                     MethodDef method;
-                    if (!instr.OpCode.Equals(OpCodes.Call) || (method = instr.Operand as MethodDef) == null ||
-                        method.ReturnType.FullName != "System.Byte[]")
+                    if (
+                        !instr.OpCode.Equals(OpCodes.Call)
+                        || (method = instr.Operand as MethodDef) == null
+                        || method.ReturnType.FullName != "System.Byte[]"
+                    )
                         continue;
 
                     using var enumerator2 = DotNetUtils.GetMethodCalls(method).GetEnumerator();
                     while (enumerator2.MoveNext())
                     {
                         MethodDef calledMethod;
-                        if ((calledMethod = enumerator2.Current as MethodDef) == null ||
-                            calledMethod.Parameters.Count != 2)
+                        if (
+                            (calledMethod = enumerator2.Current as MethodDef) == null
+                            || calledMethod.Parameters.Count != 2
+                        )
                             continue;
                         instrs = calledMethod.Body.Instructions;
                         methodDef = calledMethod;
@@ -536,7 +616,7 @@ namespace NETReactorSlayer.Core.Helper
                     1 => ary[index],
                     2 => (uint)(ary[index] | (ary[index + 1] << 8)),
                     3 => (uint)(ary[index] | (ary[index + 1] << 8) | (ary[index + 2] << 16)),
-                    _ => throw new ApplicationException("Can't read data")
+                    _ => throw new ApplicationException("Can't read data"),
                 };
             }
 
@@ -557,14 +637,24 @@ namespace NETReactorSlayer.Core.Helper
             {
                 if (_emuArg == null)
                 {
-                    _instrEmulator.Initialize(_decrypterMethod, _decrypterMethod.Parameters, _locals,
-                        _decrypterMethod.Body.InitLocals, false);
+                    _instrEmulator.Initialize(
+                        _decrypterMethod,
+                        _decrypterMethod.Parameters,
+                        _locals,
+                        _decrypterMethod.Body.InitLocals,
+                        false
+                    );
                     _instrEmulator.SetLocal(_emuLocal, new Int32Value((int)input));
                 }
                 else
                 {
-                    _instrEmulator.Initialize(_emuMethod, _emuMethod.Parameters, _locals, _emuMethod.Body.InitLocals,
-                        false);
+                    _instrEmulator.Initialize(
+                        _emuMethod,
+                        _emuMethod.Parameters,
+                        _locals,
+                        _emuMethod.Body.InitLocals,
+                        false
+                    );
                     _instrEmulator.SetArg(_emuArg, new Int32Value((int)input));
                 }
 
@@ -579,8 +669,10 @@ namespace NETReactorSlayer.Core.Helper
                             goto Emulate;
                         if (!TryGetLdcValue(_instructions[index + 1], out var value) || value != 0)
                             goto Emulate;
-                        if (!_instructions[index + 2].OpCode.Equals(OpCodes.Bne_Un) &&
-                            !_instructions[index + 2].OpCode.Equals(OpCodes.Bne_Un_S))
+                        if (
+                            !_instructions[index + 2].OpCode.Equals(OpCodes.Bne_Un)
+                            && !_instructions[index + 2].OpCode.Equals(OpCodes.Bne_Un_S)
+                        )
                             goto Emulate;
                         if (!_instructions[index + 3].IsLdloc())
                             goto Emulate;
@@ -591,7 +683,11 @@ namespace NETReactorSlayer.Core.Helper
                         if (!_instructions[index + 6].IsStloc())
                             goto Emulate;
 
-                        switch (_instrEmulator.GetLocal(CheckLocal(_instructions[index + 6], false).Index))
+                        switch (
+                            _instrEmulator.GetLocal(
+                                CheckLocal(_instructions[index + 6], false).Index
+                            )
+                        )
                         {
                             case Int32Value int32:
                             {
@@ -625,9 +721,9 @@ namespace NETReactorSlayer.Core.Helper
                 return (uint)tos.Value;
             }
 
-
             private readonly InstructionEmulator _instrEmulator = new();
-            private readonly byte[] _key, _iv;
+            private readonly byte[] _key,
+                _iv;
             private readonly MethodDef _decrypterMethod;
             private Parameter _emuArg;
             private Local _emuLocal;
@@ -648,13 +744,15 @@ namespace NETReactorSlayer.Core.Helper
                     throw new ApplicationException("Could not initialize decrypter");
             }
 
-            public static bool CouldBeResourceDecrypter(StringCounts stringCounts,
-                IEnumerable<string> additionalTypes)
+            public static bool CouldBeResourceDecrypter(
+                StringCounts stringCounts,
+                IEnumerable<string> additionalTypes
+            )
             {
                 var requiredTypes = new List<string>
                 {
                     "System.Reflection.Emit.DynamicMethod",
-                    "System.Reflection.Emit.ILGenerator"
+                    "System.Reflection.Emit.ILGenerator",
                 };
                 requiredTypes.AddRange(additionalTypes);
                 return stringCounts.All(requiredTypes);
@@ -678,8 +776,10 @@ namespace NETReactorSlayer.Core.Helper
             private bool Initialize()
             {
                 var origInstrs = _decrypterMethod.Body.Instructions;
-                if (!Find(origInstrs, out var emuStartIndex, out var emuEndIndex, out _emuLocal) &&
-                    !FindStartEnd(origInstrs, out emuStartIndex, out emuEndIndex, out _emuLocal))
+                if (
+                    !Find(origInstrs, out var emuStartIndex, out var emuEndIndex, out _emuLocal)
+                    && !FindStartEnd(origInstrs, out emuStartIndex, out emuEndIndex, out _emuLocal)
+                )
                     return false;
                 var count = emuEndIndex - emuStartIndex + 1;
                 _instructions = new List<Instruction>(count);
@@ -690,8 +790,13 @@ namespace NETReactorSlayer.Core.Helper
 
             private uint CalculateMagic(uint input)
             {
-                _instrEmulator.Initialize(_decrypterMethod, _decrypterMethod.Parameters, _locals,
-                    _decrypterMethod.Body.InitLocals, false);
+                _instrEmulator.Initialize(
+                    _decrypterMethod,
+                    _decrypterMethod.Parameters,
+                    _locals,
+                    _decrypterMethod.Body.InitLocals,
+                    false
+                );
                 _instrEmulator.SetLocal(_emuLocal, new Int32Value((int)input));
 
                 var index = 0;
@@ -705,8 +810,10 @@ namespace NETReactorSlayer.Core.Helper
                             goto Emulate;
                         if (!TryGetLdcValue(_instructions[index + 1], out var value) || value != 0)
                             goto Emulate;
-                        if (!_instructions[index + 2].OpCode.Equals(OpCodes.Bne_Un) &&
-                            !_instructions[index + 2].OpCode.Equals(OpCodes.Bne_Un_S))
+                        if (
+                            !_instructions[index + 2].OpCode.Equals(OpCodes.Bne_Un)
+                            && !_instructions[index + 2].OpCode.Equals(OpCodes.Bne_Un_S)
+                        )
                             goto Emulate;
                         if (!_instructions[index + 3].IsLdloc())
                             goto Emulate;
@@ -717,26 +824,30 @@ namespace NETReactorSlayer.Core.Helper
                         if (!_instructions[index + 6].IsStloc())
                             goto Emulate;
 
-                        switch (_instrEmulator.GetLocal(CheckLocal(_instructions[index + 6], false).Index))
+                        switch (
+                            _instrEmulator.GetLocal(
+                                CheckLocal(_instructions[index + 6], false).Index
+                            )
+                        )
                         {
                             case Int32Value int32:
-                                {
-                                    if (int32.Value != Int32Value.Zero.Value)
-                                        index += 7;
-                                    break;
-                                }
+                            {
+                                if (int32.Value != Int32Value.Zero.Value)
+                                    index += 7;
+                                break;
+                            }
                             case Int64Value int64:
-                                {
-                                    if (int64.Value != Int64Value.Zero.Value)
-                                        index += 7;
-                                    break;
-                                }
+                            {
+                                if (int64.Value != Int64Value.Zero.Value)
+                                    index += 7;
+                                break;
+                            }
                             case Real8Value real8Value:
-                                {
-                                    if (!real8Value.Value.Equals(new Real8Value(0).Value))
-                                        index += 7;
-                                    break;
-                                }
+                            {
+                                if (!real8Value.Value.Equals(new Real8Value(0).Value))
+                                    index += 7;
+                                break;
+                            }
                         }
                     }
                     catch { }
@@ -761,7 +872,7 @@ namespace NETReactorSlayer.Core.Helper
                     1 => ary[index],
                     2 => (uint)(ary[index] | (ary[index + 1] << 8)),
                     3 => (uint)(ary[index] | (ary[index + 1] << 8) | (ary[index + 2] << 16)),
-                    _ => throw new ApplicationException("Can't read data")
+                    _ => throw new ApplicationException("Can't read data"),
                 };
             }
 
@@ -778,7 +889,12 @@ namespace NETReactorSlayer.Core.Helper
                     ary[index + 3] = (byte)(value >> 24);
             }
 
-            private bool Find(IList<Instruction> instrs, out int startIndex, out int endIndex, out Local tmpLocal)
+            private bool Find(
+                IList<Instruction> instrs,
+                out int startIndex,
+                out int endIndex,
+                out Local tmpLocal
+            )
             {
                 startIndex = 0;
                 endIndex = 0;
@@ -810,16 +926,26 @@ namespace NETReactorSlayer.Core.Helper
                 return false;
             }
 
-            private bool FindStart(IList<Instruction> instrs, out int startIndex, out Local tmpLocal)
+            private bool FindStart(
+                IList<Instruction> instrs,
+                out int startIndex,
+                out Local tmpLocal
+            )
             {
                 var i = 0;
                 while (i + 8 < instrs.Count)
                 {
                     Local local;
-                    if (instrs[i].OpCode.Code.Equals(Code.Conv_U) && instrs[i + 1].OpCode.Code.Equals(Code.Ldelem_U1) &&
-                        instrs[i + 2].OpCode.Code.Equals(Code.Or) && CheckLocal(instrs[i + 3], false) != null &&
-                        (local = CheckLocal(instrs[i + 4], true)) != null && CheckLocal(instrs[i + 5], true) != null &&
-                        instrs[i + 6].OpCode.Code.Equals(Code.Add) && CheckLocal(instrs[i + 7], false) == local)
+                    if (
+                        instrs[i].OpCode.Code.Equals(Code.Conv_U)
+                        && instrs[i + 1].OpCode.Code.Equals(Code.Ldelem_U1)
+                        && instrs[i + 2].OpCode.Code.Equals(Code.Or)
+                        && CheckLocal(instrs[i + 3], false) != null
+                        && (local = CheckLocal(instrs[i + 4], true)) != null
+                        && CheckLocal(instrs[i + 5], true) != null
+                        && instrs[i + 6].OpCode.Code.Equals(Code.Add)
+                        && CheckLocal(instrs[i + 7], false) == local
+                    )
                     {
                         var instr = instrs[i + 8];
                         var newStartIndex = i + 8;
@@ -845,24 +971,32 @@ namespace NETReactorSlayer.Core.Helper
                 return false;
             }
 
-            private bool FindStartEnd(IList<Instruction> instrs, out int startIndex, out int endIndex,
-                out Local tmpLocal)
+            private bool FindStartEnd(
+                IList<Instruction> instrs,
+                out int startIndex,
+                out int endIndex,
+                out Local tmpLocal
+            )
             {
                 var i = 0;
                 while (i + 8 < instrs.Count)
                 {
-                    if (instrs[i].OpCode.Code.Equals(Code.Conv_R_Un) &&
-                        instrs[i + 1].OpCode.Code.Equals(Code.Conv_R8) &&
-                        instrs[i + 2].OpCode.Code.Equals(Code.Conv_U4) &&
-                        instrs[i + 3].OpCode.Code.Equals(Code.Add))
+                    if (
+                        instrs[i].OpCode.Code.Equals(Code.Conv_R_Un)
+                        && instrs[i + 1].OpCode.Code.Equals(Code.Conv_R8)
+                        && instrs[i + 2].OpCode.Code.Equals(Code.Conv_U4)
+                        && instrs[i + 3].OpCode.Code.Equals(Code.Add)
+                    )
                     {
                         var newEndIndex = i + 3;
                         var newStartIndex = -1;
                         for (var x = newEndIndex; x > 0; x--)
                             if (instrs[x].OpCode.FlowControl != FlowControl.Next)
                             {
-                                if (instrs[x].OpCode.Equals(OpCodes.Bne_Un) ||
-                                    instrs[x].OpCode.Equals(OpCodes.Bne_Un_S))
+                                if (
+                                    instrs[x].OpCode.Equals(OpCodes.Bne_Un)
+                                    || instrs[x].OpCode.Equals(OpCodes.Bne_Un_S)
+                                )
                                 {
                                     _decrypterVersion = DecrypterVersion.V69;
                                     continue;
@@ -889,7 +1023,6 @@ namespace NETReactorSlayer.Core.Helper
                                 ckStartIndex = newStartIndex;
                                 break;
                             }
-
 
                         if (newStartIndex >= 0)
                         {
@@ -927,7 +1060,6 @@ namespace NETReactorSlayer.Core.Helper
                 }
             }
 
-
             private readonly InstructionEmulator _instrEmulator = new();
             private readonly List<Local> _locals;
             private readonly MethodDef _decrypterMethod;
@@ -953,24 +1085,28 @@ namespace NETReactorSlayer.Core.Helper
                     throw new ApplicationException("Could not initialize decrypter");
             }
 
-            public static bool CouldBeResourceDecrypter(MethodDef method, StringCounts stringCounts,
-                IEnumerable<string> additionalTypes)
+            public static bool CouldBeResourceDecrypter(
+                MethodDef method,
+                StringCounts stringCounts,
+                IEnumerable<string> additionalTypes
+            )
             {
-                var requiredTypes = new List<string>
-                {
-                    "System.Int32",
-                    "System.Byte[]"
-                };
+                var requiredTypes = new List<string> { "System.Int32", "System.Byte[]" };
                 requiredTypes.AddRange(additionalTypes);
                 if (!stringCounts.All(requiredTypes))
                     return false;
 
                 var instrs = method.Body.Instructions;
 
-                return instrs.Where(instr => instr.OpCode == OpCodes.Newobj).Any(instr => instr.Operand is IMethod
-                {
-                    FullName: "System.Void System.Diagnostics.StackFrame::.ctor(System.Int32)"
-                });
+                return instrs
+                    .Where(instr => instr.OpCode == OpCodes.Newobj)
+                    .Any(instr =>
+                        instr.Operand
+                            is IMethod
+                            {
+                                FullName: "System.Void System.Diagnostics.StackFrame::.ctor(System.Int32)"
+                            }
+                    );
             }
 
             public byte[] Decrypt(EmbeddedResource resource)
@@ -1041,7 +1177,9 @@ namespace NETReactorSlayer.Core.Helper
                 var origInstrs = _emuMethod.Body.Instructions;
 
                 if (!Find(origInstrs, out var emuStartIndex, out var emuEndIndex, out _emuLocal))
-                    if (!FindStartEnd(origInstrs, out emuStartIndex, out emuEndIndex, out _emuLocal))
+                    if (
+                        !FindStartEnd(origInstrs, out emuStartIndex, out emuEndIndex, out _emuLocal)
+                    )
                         return false;
 
                 for (var i = 0; i < _iv.Length; i++)
@@ -1055,7 +1193,12 @@ namespace NETReactorSlayer.Core.Helper
                 return true;
             }
 
-            private bool Find(IList<Instruction> instrs, out int startIndex, out int endIndex, out Local tmpLocal)
+            private bool Find(
+                IList<Instruction> instrs,
+                out int startIndex,
+                out int endIndex,
+                out Local tmpLocal
+            )
             {
                 startIndex = 0;
                 endIndex = 0;
@@ -1071,24 +1214,32 @@ namespace NETReactorSlayer.Core.Helper
                 return true;
             }
 
-            private bool FindStartEnd(IList<Instruction> instrs, out int startIndex, out int endIndex,
-                out Local tmpLocal)
+            private bool FindStartEnd(
+                IList<Instruction> instrs,
+                out int startIndex,
+                out int endIndex,
+                out Local tmpLocal
+            )
             {
                 var i = 0;
                 while (i + 8 < instrs.Count)
                 {
-                    if (instrs[i].OpCode.Code.Equals(Code.Conv_R_Un) &&
-                        instrs[i + 1].OpCode.Code.Equals(Code.Conv_R8) &&
-                        instrs[i + 2].OpCode.Code.Equals(Code.Conv_U4) &&
-                        instrs[i + 3].OpCode.Code.Equals(Code.Add))
+                    if (
+                        instrs[i].OpCode.Code.Equals(Code.Conv_R_Un)
+                        && instrs[i + 1].OpCode.Code.Equals(Code.Conv_R8)
+                        && instrs[i + 2].OpCode.Code.Equals(Code.Conv_U4)
+                        && instrs[i + 3].OpCode.Code.Equals(Code.Add)
+                    )
                     {
                         var newEndIndex = i + 3;
                         var newStartIndex = -1;
                         for (var x = newEndIndex; x > 0; x--)
                             if (instrs[x].OpCode.FlowControl != FlowControl.Next)
                             {
-                                if (instrs[x].OpCode.Equals(OpCodes.Bne_Un) ||
-                                    instrs[x].OpCode.Equals(OpCodes.Bne_Un_S))
+                                if (
+                                    instrs[x].OpCode.Equals(OpCodes.Bne_Un)
+                                    || instrs[x].OpCode.Equals(OpCodes.Bne_Un_S)
+                                )
                                 {
                                     _decrypterVersion = DecrypterVersion.V69;
                                     continue;
@@ -1116,7 +1267,6 @@ namespace NETReactorSlayer.Core.Helper
                                 break;
                             }
 
-
                         if (newStartIndex >= 0)
                         {
                             var checkLocs = new List<Local>();
@@ -1141,7 +1291,11 @@ namespace NETReactorSlayer.Core.Helper
                 return false;
             }
 
-            private bool FindStart(IList<Instruction> instrs, out int startIndex, out Local tmpLocal)
+            private bool FindStart(
+                IList<Instruction> instrs,
+                out int startIndex,
+                out Local tmpLocal
+            )
             {
                 for (var i = 0; i + 8 < instrs.Count; i++)
                 {
@@ -1217,8 +1371,13 @@ namespace NETReactorSlayer.Core.Helper
 
             private uint CalculateMagic(uint input)
             {
-                _instrEmulator.Initialize(_emuMethod, _emuMethod.Parameters, _locals, _emuMethod.Body.InitLocals,
-                    false);
+                _instrEmulator.Initialize(
+                    _emuMethod,
+                    _emuMethod.Parameters,
+                    _locals,
+                    _emuMethod.Body.InitLocals,
+                    false
+                );
                 _instrEmulator.SetLocal(_emuLocal, new Int32Value((int)input));
 
                 var index = 0;
@@ -1232,8 +1391,10 @@ namespace NETReactorSlayer.Core.Helper
                             goto Emulate;
                         if (!TryGetLdcValue(_instructions[index + 1], out var value) || value != 0)
                             goto Emulate;
-                        if (!_instructions[index + 2].OpCode.Equals(OpCodes.Bne_Un) &&
-                            !_instructions[index + 2].OpCode.Equals(OpCodes.Bne_Un_S))
+                        if (
+                            !_instructions[index + 2].OpCode.Equals(OpCodes.Bne_Un)
+                            && !_instructions[index + 2].OpCode.Equals(OpCodes.Bne_Un_S)
+                        )
                             goto Emulate;
                         if (!_instructions[index + 3].IsLdloc())
                             goto Emulate;
@@ -1244,26 +1405,30 @@ namespace NETReactorSlayer.Core.Helper
                         if (!_instructions[index + 6].IsStloc())
                             goto Emulate;
 
-                        switch (_instrEmulator.GetLocal(CheckLocal(_instructions[index + 6], false).Index))
+                        switch (
+                            _instrEmulator.GetLocal(
+                                CheckLocal(_instructions[index + 6], false).Index
+                            )
+                        )
                         {
                             case Int32Value int32:
-                                {
-                                    if (int32.Value != Int32Value.Zero.Value)
-                                        index += 7;
-                                    break;
-                                }
+                            {
+                                if (int32.Value != Int32Value.Zero.Value)
+                                    index += 7;
+                                break;
+                            }
                             case Int64Value int64:
-                                {
-                                    if (int64.Value != Int64Value.Zero.Value)
-                                        index += 7;
-                                    break;
-                                }
+                            {
+                                if (int64.Value != Int64Value.Zero.Value)
+                                    index += 7;
+                                break;
+                            }
                             case Real8Value real8Value:
-                                {
-                                    if (!real8Value.Value.Equals(new Real8Value(0).Value))
-                                        index += 7;
-                                    break;
-                                }
+                            {
+                                if (!real8Value.Value.Equals(new Real8Value(0).Value))
+                                    index += 7;
+                                break;
+                            }
                         }
                     }
                     catch { }
@@ -1288,7 +1453,7 @@ namespace NETReactorSlayer.Core.Helper
                     1 => ary[index],
                     2 => (uint)(ary[index] | (ary[index + 1] << 8)),
                     3 => (uint)(ary[index] | (ary[index + 1] << 8) | (ary[index + 2] << 16)),
-                    _ => throw new ApplicationException("Can't read data")
+                    _ => throw new ApplicationException("Can't read data"),
                 };
             }
 
@@ -1305,8 +1470,8 @@ namespace NETReactorSlayer.Core.Helper
                     ary[index + 3] = (byte)(value >> 24);
             }
 
-
-            private readonly byte[] _key, _iv;
+            private readonly byte[] _key,
+                _iv;
             private MethodDef _decrypterMethod;
             private MethodDef _emuMethod;
             private List<Instruction> _instructions;

@@ -20,7 +20,8 @@ namespace NETReactorSlayer.De4dot
 {
     public class NameRegexes
     {
-        public NameRegexes() : this("") { }
+        public NameRegexes()
+            : this("") { }
 
         public NameRegexes(string regex) => Set(regex);
 

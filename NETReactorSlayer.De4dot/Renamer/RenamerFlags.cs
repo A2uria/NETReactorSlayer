@@ -33,6 +33,6 @@ namespace NETReactorSlayer.De4dot.Renamer
         RestoreEvents = 0x400,
         RestoreEventsFromNames = 0x800,
         DontCreateNewParamDefs = 0x1000,
-        DontRenameDelegateFields = 0x2000
+        DontRenameDelegateFields = 0x2000,
     }
 }

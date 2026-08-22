@@ -24,12 +24,23 @@ namespace NETReactorSlayer.Core.Helper
         public static byte[] GetInitializedByteArray(MethodDef method, int arraySize)
         {
             var newarrIndex = FindNewarr(method, arraySize);
-            return newarrIndex < 0 ? null : GetInitializedByteArray(arraySize, method, ref newarrIndex);
+            return newarrIndex < 0
+                ? null
+                : GetInitializedByteArray(arraySize, method, ref newarrIndex);
         }
 
-        public static byte[] GetInitializedByteArray(int arraySize, MethodDef method, ref int newarrIndex)
+        public static byte[] GetInitializedByteArray(
+            int arraySize,
+            MethodDef method,
+            ref int newarrIndex
+        )
         {
-            var resultValueArray = GetInitializedArray(arraySize, method, ref newarrIndex, Code.Stelem_I1);
+            var resultValueArray = GetInitializedArray(
+                arraySize,
+                method,
+                ref newarrIndex,
+                Code.Stelem_I1
+            );
 
             var resultArray = new byte[resultValueArray.Length];
             for (var i = 0; i < resultArray.Length; i++)
@@ -43,7 +54,11 @@ namespace NETReactorSlayer.Core.Helper
         }
 
         public static Value[] GetInitializedArray(
-            int arraySize, MethodDef method, ref int newarrIndex, Code stelemOpCode)
+            int arraySize,
+            MethodDef method,
+            ref int newarrIndex,
+            Code stelemOpCode
+        )
         {
             var resultValueArray = new Value[arraySize];
 
@@ -76,7 +91,11 @@ namespace NETReactorSlayer.Core.Helper
                     case Code.Starg_S:
                     case Code.Stsfld:
                     case Code.Stfld:
-                        if (emulator.Peek() == theArray && i != newarrIndex + 1 && i != newarrIndex + 2)
+                        if (
+                            emulator.Peek() == theArray
+                            && i != newarrIndex + 1
+                            && i != newarrIndex + 2
+                        )
                             goto done;
                         break;
                 }
@@ -105,7 +124,7 @@ namespace NETReactorSlayer.Core.Helper
 
         private static int FindNewarr(MethodDef method, int arraySize)
         {
-            for (var i = 0;; i++)
+            for (var i = 0; ; i++)
             {
                 if (!FindNewarr(method, ref i, out var size))
                     return -1;

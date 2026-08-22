@@ -23,7 +23,10 @@ namespace NETReactorSlayer.De4dot
 {
     public static class MethodStack
     {
-        public static PushedArgs GetPushedArgInstructions(IList<Instruction> instructions, int index)
+        public static PushedArgs GetPushedArgInstructions(
+            IList<Instruction> instructions,
+            int index
+        )
         {
             try
             {
@@ -36,7 +39,11 @@ namespace NETReactorSlayer.De4dot
             return new PushedArgs(0);
         }
 
-        private static PushedArgs GetPushedArgInstructions(IList<Instruction> instructions, int index, int numArgs)
+        private static PushedArgs GetPushedArgInstructions(
+            IList<Instruction> instructions,
+            int index,
+            int numArgs
+        )
         {
             var pushedArgs = new PushedArgs(numArgs);
             if (!pushedArgs.CanAddMore)
@@ -51,8 +58,11 @@ namespace NETReactorSlayer.De4dot
             {
                 while (state.Index >= 0)
                 {
-                    if (branches != null && branches.TryGetValue(state.Index, out var branch) &&
-                        state.Visited.Add(state.Index))
+                    if (
+                        branches != null
+                        && branches.TryGetValue(state.Index, out var branch)
+                        && state.Visited.Add(state.Index)
+                    )
                     {
                         branch.Current = 0;
                         var brState = state.Clone();
@@ -93,7 +103,11 @@ namespace NETReactorSlayer.De4dot
             }
         }
 
-        private static Update UpdateState(IList<Instruction> instructions, State state, PushedArgs pushedArgs)
+        private static Update UpdateState(
+            IList<Instruction> instructions,
+            State state,
+            PushedArgs pushedArgs
+        )
         {
             if (state.Index < 0 || state.Index >= instructions.Count)
                 return Update.Fail;
@@ -170,12 +184,20 @@ namespace NETReactorSlayer.De4dot
             return _cacheBranches;
         }
 
-        public static TypeSig GetLoadedType(MethodDef method, IList<Instruction> instructions, int instrIndex,
-            out bool wasNewobj) =>
-            GetLoadedType(method, instructions, instrIndex, 0, out wasNewobj);
+        public static TypeSig GetLoadedType(
+            MethodDef method,
+            IList<Instruction> instructions,
+            int instrIndex,
+            out bool wasNewobj
+        ) => GetLoadedType(method, instructions, instrIndex, 0, out wasNewobj);
 
-        public static TypeSig GetLoadedType(MethodDef method, IList<Instruction> instructions, int instrIndex,
-            int argIndexFromEnd, out bool wasNewobj)
+        public static TypeSig GetLoadedType(
+            MethodDef method,
+            IList<Instruction> instructions,
+            int instrIndex,
+            int argIndexFromEnd,
+            out bool wasNewobj
+        )
         {
             wasNewobj = false;
             var pushedArgs = GetPushedArgInstructions(instructions, instrIndex);
@@ -284,7 +306,9 @@ namespace NETReactorSlayer.De4dot
 
                 case Code.Ldarga:
                 case Code.Ldarga_S:
-                    type = CreateByRefType(pushInstr.GetArgumentType(method.MethodSig, method.DeclaringType));
+                    type = CreateByRefType(
+                        pushInstr.GetArgumentType(method.MethodSig, method.DeclaringType)
+                    );
                     break;
 
                 case Code.Ldfld:
@@ -323,7 +347,12 @@ namespace NETReactorSlayer.De4dot
 
         private static IList<Instruction> _cacheInstructions;
 
-        private enum Update { Ok, Fail, Finish }
+        private enum Update
+        {
+            Ok,
+            Fail,
+            Finish,
+        }
 
         private class Branch
         {
@@ -336,7 +365,14 @@ namespace NETReactorSlayer.De4dot
 
         private class State
         {
-            public State(int index, Branch branch, int validArgs, int skipPushes, int addPushes, HashSet<int> visited)
+            public State(
+                int index,
+                Branch branch,
+                int validArgs,
+                int skipPushes,
+                int addPushes,
+                HashSet<int> visited
+            )
             {
                 Index = index;
                 Branch = branch;
@@ -346,7 +382,8 @@ namespace NETReactorSlayer.De4dot
                 Visited = visited;
             }
 
-            public State Clone() => new(Index, Branch, ValidArgs, SkipPushes, AddPushes, new HashSet<int>(Visited));
+            public State Clone() =>
+                new(Index, Branch, ValidArgs, SkipPushes, AddPushes, new HashSet<int>(Visited));
 
             public readonly HashSet<int> Visited;
 

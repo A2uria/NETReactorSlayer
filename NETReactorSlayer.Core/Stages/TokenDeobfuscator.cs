@@ -29,18 +29,28 @@ namespace NETReactorSlayer.Core.Stages
             MethodDef fieldMethod = null;
             MethodDef typeMethod = null;
             long count = 0;
-            foreach (var type in from type in context.Module.GetTypes()
-                         .Where(x => !x.HasProperties && !x.HasEvents && x.Fields.Count != 0)
-                     from _ in type.Fields.Where(x => x.FieldType.FullName.Equals("System.ModuleHandle"))
-                     select type)
+            foreach (
+                var type in from type in context
+                    .Module.GetTypes()
+                    .Where(x => !x.HasProperties && !x.HasEvents && x.Fields.Count != 0)
+                from _ in type.Fields.Where(x => x.FieldType.FullName.Equals("System.ModuleHandle"))
+                select type
+            )
             {
-                foreach (var method in type.Methods.Where(x => x.MethodSig != null &&
-                                                               x.MethodSig.Params.Count.Equals(1) &&
-                                                               x.MethodSig.Params[0].GetElementType() == ElementType.I4)
-                             .ToList())
+                foreach (
+                    var method in type
+                        .Methods.Where(x =>
+                            x.MethodSig != null
+                            && x.MethodSig.Params.Count.Equals(1)
+                            && x.MethodSig.Params[0].GetElementType() == ElementType.I4
+                        )
+                        .ToList()
+                )
                     if (method.MethodSig.RetType.GetFullName().Equals("System.RuntimeTypeHandle"))
                         typeMethod = method;
-                    else if (method.MethodSig.RetType.GetFullName().Equals("System.RuntimeFieldHandle"))
+                    else if (
+                        method.MethodSig.RetType.GetFullName().Equals("System.RuntimeFieldHandle")
+                    )
                         fieldMethod = method;
                 if (typeMethod == null || fieldMethod == null)
                     continue;
@@ -59,11 +69,15 @@ namespace NETReactorSlayer.Core.Stages
                         for (var i = 0; i < block.Instructions.Count; i++)
                             try
                             {
-                                if (!block.Instructions[i].OpCode.Code.Equals(Code.Ldc_I4) ||
-                                    block.Instructions[i + 1].OpCode.Code != Code.Call)
+                                if (
+                                    !block.Instructions[i].OpCode.Code.Equals(Code.Ldc_I4)
+                                    || block.Instructions[i + 1].OpCode.Code != Code.Call
+                                )
                                     continue;
-                                if (block.Instructions[i + 1].Operand is not IMethod iMethod ||
-                                    !default(SigComparer).Equals(typeDef, iMethod.DeclaringType))
+                                if (
+                                    block.Instructions[i + 1].Operand is not IMethod iMethod
+                                    || !default(SigComparer).Equals(typeDef, iMethod.DeclaringType)
+                                )
                                     continue;
                                 var methodDef = DotNetUtils.GetMethod(context.Module, iMethod);
                                 if (methodDef == null)
@@ -72,8 +86,13 @@ namespace NETReactorSlayer.Core.Stages
                                     continue;
                                 var token = (uint)(int)block.Instructions[i].Operand;
                                 block.Instructions[i] = new Instr(OpCodes.Nop.ToInstruction());
-                                block.Instructions[i + 1] = new Instr(new Instruction(OpCodes.Ldtoken,
-                                    context.Module.ResolveToken(token, gpContext) as ITokenOperand));
+                                block.Instructions[i + 1] = new Instr(
+                                    new Instruction(
+                                        OpCodes.Ldtoken,
+                                        context.Module.ResolveToken(token, gpContext)
+                                            as ITokenOperand
+                                    )
+                                );
                                 count++;
                             }
                             catch { }
@@ -81,7 +100,6 @@ namespace NETReactorSlayer.Core.Stages
                     blocks.GetCode(out var allInstructions, out var allExceptionHandlers);
                     DotNetUtils.RestoreBody(method, allInstructions, allExceptionHandlers);
                 }
-
 
             if (count == 0)
                 context.Logger.Warn("Couldn't found any obfuscated metadata token.");

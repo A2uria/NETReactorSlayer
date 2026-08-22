@@ -43,7 +43,10 @@ namespace NETReactorSlayer.Core.Stages
                 try
                 {
                     using var resourceStream = embeddedResource.CreateReader().AsStream();
-                    using var deflateStream = new DeflateStream(resourceStream, CompressionMode.Decompress);
+                    using var deflateStream = new DeflateStream(
+                        resourceStream,
+                        CompressionMode.Decompress
+                    );
                     using var memoryStream = new MemoryStream();
                     deflateStream.CopyTo(memoryStream);
                     try
@@ -51,13 +54,15 @@ namespace NETReactorSlayer.Core.Stages
                         memoryStream.Position = 0L;
                         File.WriteAllBytes(
                             $"{context.Options.SourceDir}\\{GetAssemblyName(memoryStream.ToArray(), false)}.dll",
-                            memoryStream.ToArray());
+                            memoryStream.ToArray()
+                        );
                     }
                     catch
                     {
                         File.WriteAllBytes(
                             $"{context.Options.SourceDir}\\{embeddedResource.Name.Replace(".compressed", "").Replace("costura.", "")}",
-                            memoryStream.ToArray());
+                            memoryStream.ToArray()
+                        );
                     }
 
                     memoryStream.Close();
@@ -72,8 +77,13 @@ namespace NETReactorSlayer.Core.Stages
                 if (cctor.HasBody && cctor.Body.HasInstructions)
                     for (var i = 0; i < cctor.Body.Instructions.ToList().Count; i++)
                     {
-                        if (cctor.Body.Instructions[i].Operand == null || !cctor.Body.Instructions[i].Operand
-                                .ToString()!.Contains("Costura.AssemblyLoader::Attach()"))
+                        if (
+                            cctor.Body.Instructions[i].Operand == null
+                            || !cctor
+                                .Body.Instructions[i]
+                                .Operand.ToString()!
+                                .Contains("Costura.AssemblyLoader::Attach()")
+                        )
                             continue;
                         cctor.Body.Instructions.RemoveAt(i);
                         break;
@@ -94,7 +104,10 @@ namespace NETReactorSlayer.Core.Stages
                     return module.Assembly.FullName;
                 return module.Assembly.Name;
             }
-            catch { return null; }
+            catch
+            {
+                return null;
+            }
         }
     }
 }

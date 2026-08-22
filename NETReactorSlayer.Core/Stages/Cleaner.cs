@@ -38,7 +38,10 @@ namespace NETReactorSlayer.Core.Stages
 
         public static void AddCallToBeRemoved(MethodDef method)
         {
-            if (method == null || CallsToRemove.Any(x => x.MDToken.ToInt32() == method.MDToken.ToInt32()))
+            if (
+                method == null
+                || CallsToRemove.Any(x => x.MDToken.ToInt32() == method.MDToken.ToInt32())
+            )
                 return;
             MethodsToRemove.Add(method);
             CallsToRemove.Add(method);
@@ -46,7 +49,10 @@ namespace NETReactorSlayer.Core.Stages
 
         public static void AddMethodToBeRemoved(MethodDef method)
         {
-            if (method == null || MethodsToRemove.Any(x => x.MDToken.ToInt32() == method.MDToken.ToInt32()))
+            if (
+                method == null
+                || MethodsToRemove.Any(x => x.MDToken.ToInt32() == method.MDToken.ToInt32())
+            )
                 return;
             MethodsToRemove.Add(method);
         }
@@ -97,7 +103,11 @@ namespace NETReactorSlayer.Core.Stages
             if (Context.Options.KeepObfuscatorTypes)
                 return;
             foreach (var method in MethodsToRemove)
-                try { method.DeclaringType.Remove(method); } catch { }
+                try
+                {
+                    method.DeclaringType.Remove(method);
+                }
+                catch { }
 
             foreach (var typeDef in TypesToRemove.Select(type => type.ResolveTypeDef()))
                 try
@@ -110,33 +120,56 @@ namespace NETReactorSlayer.Core.Stages
                 catch { }
 
             foreach (var rsrc in ResourcesToRemove)
-                try { Context.Module.Resources.Remove(Context.Module.Resources.Find(rsrc.Name)); } catch { }
+                try
+                {
+                    Context.Module.Resources.Remove(Context.Module.Resources.Find(rsrc.Name));
+                }
+                catch { }
         }
 
         private void FixEntrypoint()
         {
             try
             {
-                if (!Context.Module.IsEntryPointValid ||
-                    !Context.Module.EntryPoint.DeclaringType.Name.Contains("<PrivateImplementationDetails>"))
+                if (
+                    !Context.Module.IsEntryPointValid
+                    || !Context.Module.EntryPoint.DeclaringType.Name.Contains(
+                        "<PrivateImplementationDetails>"
+                    )
+                )
                     return;
-                if ((Context.Module.EntryPoint.Body.Instructions
-                        .Last(x => x.OpCode == OpCodes.Call && x.Operand is IMethod iMethod &&
-                                   iMethod.ResolveMethodDef().IsStatic).Operand as IMethod)
-                    .ResolveMethodDef() is not { } entryPoint)
+                if (
+                    (
+                        Context
+                            .Module.EntryPoint.Body.Instructions.Last(x =>
+                                x.OpCode == OpCodes.Call
+                                && x.Operand is IMethod iMethod
+                                && iMethod.ResolveMethodDef().IsStatic
+                            )
+                            .Operand as IMethod
+                    ).ResolveMethodDef()
+                    is not { } entryPoint
+                )
                     return;
                 foreach (var attribute in Context.Module.EntryPoint.CustomAttributes)
                     entryPoint.CustomAttributes.Add(attribute);
-                if (entryPoint.HasParams() && Context.Module.EntryPoint.HasParams() &&
-                    entryPoint.Parameters.First().Type.FullName == "System.Object")
-                    entryPoint.Parameters.First().Type = Context.Module.EntryPoint.Parameters.First().Type;
+                if (
+                    entryPoint.HasParams()
+                    && Context.Module.EntryPoint.HasParams()
+                    && entryPoint.Parameters.First().Type.FullName == "System.Object"
+                )
+                    entryPoint.Parameters.First().Type = Context
+                        .Module.EntryPoint.Parameters.First()
+                        .Type;
                 if (Context.Module.EntryPoint.DeclaringType.DeclaringType != null)
                     Context.Module.EntryPoint.DeclaringType.DeclaringType.NestedTypes.Remove(
-                        Context.Module.EntryPoint.DeclaringType);
+                        Context.Module.EntryPoint.DeclaringType
+                    );
                 else
                     Context.Module.Types.Remove(Context.Module.EntryPoint.DeclaringType);
                 Context.Logger.Info(
-                    $"Entrypoint fixed: {Context.Module.EntryPoint.MDToken.ToInt32()} -> {entryPoint.MDToken.ToInt32()}");
+                    $"Entrypoint fixed: {Context.Module.EntryPoint.MDToken.ToInt32()} -> {entryPoint.MDToken.ToInt32()}"
+                );
                 Context.Module.EntryPoint = entryPoint;
             }
             catch { }
@@ -157,8 +190,7 @@ namespace NETReactorSlayer.Core.Stages
             {
                 var count = MethodCallRemover.RemoveCalls(Context, CallsToRemove.ToList());
                 if (count > 0)
-                    Context.Logger.Info(
-                        $"{count} Calls to obfuscator types removed.");
+                    Context.Logger.Info($"{count} Calls to obfuscator types removed.");
                 else
                     Context.Logger.Warn("Couldn't find any call to the obfuscator types.");
             }
@@ -169,15 +201,25 @@ namespace NETReactorSlayer.Core.Stages
         {
             try
             {
-                if (_methodCallCounter == null ||
-                    (!method.IsConstructor && !method.IsStaticConstructor &&
-                     method != Context.Module.EntryPoint))
+                if (
+                    _methodCallCounter == null
+                    || (
+                        !method.IsConstructor
+                        && !method.IsStaticConstructor
+                        && method != Context.Module.EntryPoint
+                    )
+                )
                     return;
-                foreach (var calledMethod in from calledMethod in DotNetUtils.GetCalledMethods(Context.Module, method)
-                         where calledMethod.IsStatic && calledMethod.Body != null
-                         where DotNetUtils.IsMethod(calledMethod, "System.Void", "()")
-                         where IsEmptyMethod(calledMethod)
-                         select calledMethod)
+                foreach (
+                    var calledMethod in from calledMethod in DotNetUtils.GetCalledMethods(
+                        Context.Module,
+                        method
+                    )
+                    where calledMethod.IsStatic && calledMethod.Body != null
+                    where DotNetUtils.IsMethod(calledMethod, "System.Void", "()")
+                    where IsEmptyMethod(calledMethod)
+                    select calledMethod
+                )
                     _methodCallCounter?.Add(calledMethod);
 
                 var numCalls = 0;
@@ -188,7 +230,9 @@ namespace NETReactorSlayer.Core.Stages
                 try
                 {
                     if (methodDef?.DeclaringType.DeclaringType != null)
-                        methodDef.DeclaringType.DeclaringType.NestedTypes.Remove(methodDef.DeclaringType);
+                        methodDef.DeclaringType.DeclaringType.NestedTypes.Remove(
+                            methodDef.DeclaringType
+                        );
                     else
                         Context.Module.Types.Remove(methodDef?.DeclaringType);
                 }
@@ -203,33 +247,70 @@ namespace NETReactorSlayer.Core.Stages
         {
             try
             {
-                if (method.Body.Instructions.Count == 4 &&
-                    method.Body.Instructions[0].OpCode.Equals(OpCodes.Ldsfld) &&
-                    method.Body.Instructions[1].OpCode.Equals(OpCodes.Ldnull) &&
-                    method.Body.Instructions[2].OpCode.Equals(OpCodes.Ceq) &&
-                    method.Body.Instructions[3].OpCode.Equals(OpCodes.Ret))
-                    if (method.Body.Instructions[0].Operand is FieldDef { IsPublic: false } field &&
-                        (field.FieldType.FullName == "System.Object" || (field.DeclaringType != null &&
-                                                                         field.FieldType.FullName ==
-                                                                         field.DeclaringType.FullName)))
-                        foreach (var method2 in method.DeclaringType.Methods
-                                     .Where(x => x.HasBody && x.Body.HasInstructions && x.Body.Instructions.Count == 2)
-                                     .ToList().Where(method2 => !method2.IsPublic &&
-                                                                (method2.ReturnType.FullName == "System.Object" ||
-                                                                 (method2.DeclaringType != null &&
-                                                                  method2.ReturnType.FullName ==
-                                                                  field.DeclaringType.FullName)))
-                                     .Where(method2 => method2.Body.Instructions[0].OpCode.Equals(OpCodes.Ldsfld) &&
-                                                       method2.Body.Instructions[1].OpCode.Equals(OpCodes.Ret)))
+                if (
+                    method.Body.Instructions.Count == 4
+                    && method.Body.Instructions[0].OpCode.Equals(OpCodes.Ldsfld)
+                    && method.Body.Instructions[1].OpCode.Equals(OpCodes.Ldnull)
+                    && method.Body.Instructions[2].OpCode.Equals(OpCodes.Ceq)
+                    && method.Body.Instructions[3].OpCode.Equals(OpCodes.Ret)
+                )
+                    if (
+                        method.Body.Instructions[0].Operand is FieldDef { IsPublic: false } field
+                        && (
+                            field.FieldType.FullName == "System.Object"
+                            || (
+                                field.DeclaringType != null
+                                && field.FieldType.FullName == field.DeclaringType.FullName
+                            )
+                        )
+                    )
+                        foreach (
+                            var method2 in method
+                                .DeclaringType.Methods.Where(x =>
+                                    x.HasBody
+                                    && x.Body.HasInstructions
+                                    && x.Body.Instructions.Count == 2
+                                )
+                                .ToList()
+                                .Where(method2 =>
+                                    !method2.IsPublic
+                                    && (
+                                        method2.ReturnType.FullName == "System.Object"
+                                        || (
+                                            method2.DeclaringType != null
+                                            && method2.ReturnType.FullName
+                                                == field.DeclaringType.FullName
+                                        )
+                                    )
+                                )
+                                .Where(method2 =>
+                                    method2.Body.Instructions[0].OpCode.Equals(OpCodes.Ldsfld)
+                                    && method2.Body.Instructions[1].OpCode.Equals(OpCodes.Ret)
+                                )
+                        )
                         {
-                            if (method2.Body.Instructions[0].Operand is not FieldDef field2 ||
-                                field2.MDToken.ToInt32() != field.MDToken.ToInt32())
+                            if (
+                                method2.Body.Instructions[0].Operand is not FieldDef field2
+                                || field2.MDToken.ToInt32() != field.MDToken.ToInt32()
+                            )
                                 continue;
-                            try { method.DeclaringType.Remove(method); } catch { }
+                            try
+                            {
+                                method.DeclaringType.Remove(method);
+                            }
+                            catch { }
 
-                            try { method2.DeclaringType.Remove(method2); } catch { }
+                            try
+                            {
+                                method2.DeclaringType.Remove(method2);
+                            }
+                            catch { }
 
-                            try { field.DeclaringType.Fields.Remove(field); } catch { }
+                            try
+                            {
+                                field.DeclaringType.Fields.Remove(field);
+                            }
+                            catch { }
 
                             return true;
                         }
@@ -243,15 +324,23 @@ namespace NETReactorSlayer.Core.Stages
         {
             if (!Context.Options.RemoveJunks)
                 return;
-            foreach (var method in Context.Module.GetTypes().SelectMany(type => type.Methods.Where(x => x.HasBody)))
+            foreach (
+                var method in Context
+                    .Module.GetTypes()
+                    .SelectMany(type => type.Methods.Where(x => x.HasBody))
+            )
                 try
                 {
-                    if (method.DeclaringType == null ||
-                        !DotNetUtils.IsMethod(method, "System.Void", "()") ||
-                        !method.IsStatic ||
-                        !method.IsAssembly ||
-                        !DotNetUtils.IsEmpty(method) ||
-                        method.DeclaringType.Methods.Any(x => DotNetUtils.GetMethodCalls(x).Contains(method)))
+                    if (
+                        method.DeclaringType == null
+                        || !DotNetUtils.IsMethod(method, "System.Void", "()")
+                        || !method.IsStatic
+                        || !method.IsAssembly
+                        || !DotNetUtils.IsEmpty(method)
+                        || method.DeclaringType.Methods.Any(x =>
+                            DotNetUtils.GetMethodCalls(x).Contains(method)
+                        )
+                    )
                         continue;
                     AddCallToBeRemoved(method);
                 }
@@ -260,11 +349,19 @@ namespace NETReactorSlayer.Core.Stages
 
         private bool RemoveMethodIfDnrTrial(MethodDef method)
         {
-            if (!method.Body.HasInstructions || !method.Body.Instructions.Any(x =>
-                    x.OpCode.Equals(OpCodes.Ldstr) && x.Operand != null && (x.Operand.ToString() ==
-                                                                            "This assembly is protected by an unregistered version of Eziriz's \".NET Reactor\"!" ||
-                                                                            x.Operand.ToString() ==
-                                                                            "This assembly is protected by an unregistered version of Eziriz's \".NET Reactor\"! This assembly won't further work.")))
+            if (
+                !method.Body.HasInstructions
+                || !method.Body.Instructions.Any(x =>
+                    x.OpCode.Equals(OpCodes.Ldstr)
+                    && x.Operand != null
+                    && (
+                        x.Operand.ToString()
+                            == "This assembly is protected by an unregistered version of Eziriz's \".NET Reactor\"!"
+                        || x.Operand.ToString()
+                            == "This assembly is protected by an unregistered version of Eziriz's \".NET Reactor\"! This assembly won't further work."
+                    )
+                )
+            )
                 return false;
 
             if (method.DeclaringType is { BaseType.FullName: "System.Windows.Forms.Form" })
@@ -284,8 +381,11 @@ namespace NETReactorSlayer.Core.Stages
                 return false;
             if (cA.ConstructorArguments.Count != 1)
                 return false;
-            if (cA.ConstructorArguments[0].Type.ElementType != ElementType.I2 &&
-                cA.ConstructorArguments[0].Type.FullName != "System.Runtime.CompilerServices.MethodImplOptions")
+            if (
+                cA.ConstructorArguments[0].Type.ElementType != ElementType.I2
+                && cA.ConstructorArguments[0].Type.FullName
+                    != "System.Runtime.CompilerServices.MethodImplOptions"
+            )
                 return false;
             var arg = cA.ConstructorArguments[0].Value;
             switch (arg)
@@ -316,8 +416,10 @@ namespace NETReactorSlayer.Core.Stages
                     try
                     {
                         var cattr = member.CustomAttributes[i];
-                        if (cattr.Constructor.FullName ==
-                            "System.Void System.Diagnostics.DebuggerHiddenAttribute::.ctor()")
+                        if (
+                            cattr.Constructor.FullName
+                            == "System.Void System.Diagnostics.DebuggerHiddenAttribute::.ctor()"
+                        )
                         {
                             member.CustomAttributes.RemoveAt(i);
                             i--;
@@ -340,7 +442,10 @@ namespace NETReactorSlayer.Core.Stages
                                 continue;
                         }
 
-                        if (cattr.TypeFullName != "System.Runtime.CompilerServices.MethodImplAttribute")
+                        if (
+                            cattr.TypeFullName
+                            != "System.Runtime.CompilerServices.MethodImplAttribute"
+                        )
                             continue;
                         var options = 0;
                         if (!GetMethodImplOptions(cattr, ref options))
@@ -360,7 +465,11 @@ namespace NETReactorSlayer.Core.Stages
             var cctor = type.FindStaticConstructor();
             if (cctor == null || !DotNetUtils.IsEmpty(cctor))
                 return;
-            try { cctor.DeclaringType.Methods.Remove(cctor); } catch { }
+            try
+            {
+                cctor.DeclaringType.Methods.Remove(cctor);
+            }
+            catch { }
         }
 
         private static bool IsEmptyMethod(MethodDef methodDef)
@@ -375,8 +484,11 @@ namespace NETReactorSlayer.Core.Stages
                 return false;
             switch (type.Fields.Count)
             {
-                case 2 when !(type.Fields.Any(x => x.FieldType.FullName == "System.Boolean") &&
-                              type.Fields.Any(x => x.FieldType.FullName == "System.Object")):
+                case 2
+                    when !(
+                        type.Fields.Any(x => x.FieldType.FullName == "System.Boolean")
+                        && type.Fields.Any(x => x.FieldType.FullName == "System.Object")
+                    ):
                     return false;
                 case 1 when type.Fields[0].FieldType.FullName != "System.Boolean":
                     return false;
@@ -386,8 +498,11 @@ namespace NETReactorSlayer.Core.Stages
                 return false;
 
             var otherMethods = 0;
-            foreach (var method in type.Methods.Where(method => method.Name != ".ctor" && method.Name != ".cctor")
-                         .Where(method => method != methodDef))
+            foreach (
+                var method in type
+                    .Methods.Where(method => method.Name != ".ctor" && method.Name != ".cctor")
+                    .Where(method => method != methodDef)
+            )
             {
                 otherMethods++;
                 if (method.Body == null)
@@ -398,7 +513,6 @@ namespace NETReactorSlayer.Core.Stages
 
             return otherMethods <= 8;
         }
-
 
         private IContext Context { get; set; }
         private CallCounter _methodCallCounter = new();

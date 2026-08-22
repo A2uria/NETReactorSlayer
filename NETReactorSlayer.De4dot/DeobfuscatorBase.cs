@@ -27,32 +27,38 @@ namespace NETReactorSlayer.De4dot
             Module = module;
         }
 
-        protected virtual bool CheckValidName(string name) => _optionsBase.ValidNameRegex.IsMatch(name);
+        protected virtual bool CheckValidName(string name) =>
+            _optionsBase.ValidNameRegex.IsMatch(name);
 
         public override string ToString() => Name;
 
         protected virtual void Dispose(bool disposing) { }
 
-        public virtual bool IsValidNamespaceName(string ns) => ns != null && ns.Split('.').All(CheckValidName);
+        public virtual bool IsValidNamespaceName(string ns) =>
+            ns != null && ns.Split('.').All(CheckValidName);
 
         public virtual bool IsValidTypeName(string name) => name != null && CheckValidName(name);
 
         public virtual bool IsValidMethodName(string name) => name != null && CheckValidName(name);
 
-        public virtual bool IsValidPropertyName(string name) => name != null && CheckValidName(name);
+        public virtual bool IsValidPropertyName(string name) =>
+            name != null && CheckValidName(name);
 
         public virtual bool IsValidEventName(string name) => name != null && CheckValidName(name);
 
         public virtual bool IsValidFieldName(string name) => name != null && CheckValidName(name);
 
-        public virtual bool IsValidGenericParamName(string name) => name != null && CheckValidName(name);
+        public virtual bool IsValidGenericParamName(string name) =>
+            name != null && CheckValidName(name);
 
-        public virtual bool IsValidMethodArgName(string name) => name != null && CheckValidName(name);
+        public virtual bool IsValidMethodArgName(string name) =>
+            name != null && CheckValidName(name);
 
         public virtual bool IsValidMethodReturnArgName(string name) =>
             string.IsNullOrEmpty(name) || CheckValidName(name);
 
-        public virtual bool IsValidResourceKeyName(string name) => name != null && CheckValidName(name);
+        public virtual bool IsValidResourceKeyName(string name) =>
+            name != null && CheckValidName(name);
 
         public void Dispose()
         {

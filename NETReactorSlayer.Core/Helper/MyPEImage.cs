@@ -41,8 +41,10 @@ namespace NETReactorSlayer.Core.Helper
 
         public ImageSectionHeader FindSection(RVA rva) =>
             PeImage.ImageSectionHeaders.FirstOrDefault(section =>
-                section.VirtualAddress <= rva &&
-                rva < section.VirtualAddress + Math.Max(section.VirtualSize, section.SizeOfRawData));
+                section.VirtualAddress <= rva
+                && rva
+                    < section.VirtualAddress + Math.Max(section.VirtualSize, section.SizeOfRawData)
+            );
 
         public void ReadMethodTableRowTo(DumpedMethod dm, uint rid)
         {
@@ -68,8 +70,8 @@ namespace NETReactorSlayer.Core.Helper
         public uint RvaToOffset(uint rva) => (uint)PeImage.ToFileOffset((RVA)rva);
 
         private static bool IsInside(ImageSectionHeader section, uint offset, uint length) =>
-            offset >= section.PointerToRawData &&
-            offset + length <= section.PointerToRawData + section.SizeOfRawData;
+            offset >= section.PointerToRawData
+            && offset + length <= section.PointerToRawData + section.SizeOfRawData;
 
         public byte ReadByte(uint rva) => OffsetReadByte(RvaToOffset(rva));
 
@@ -95,13 +97,19 @@ namespace NETReactorSlayer.Core.Helper
             return Reader.ReadBytes(size);
         }
 
-        public void OffsetWrite(uint offset, byte[] data) => Array.Copy(data, 0, PeImageData, offset, data.Length);
+        public void OffsetWrite(uint offset, byte[] data) =>
+            Array.Copy(data, 0, PeImageData, offset, data.Length);
 
         private static bool Intersect(uint offset1, uint length1, uint offset2, uint length2) =>
             !(offset1 + length1 <= offset2 || offset2 + length2 <= offset1);
 
-        private static bool Intersect(uint offset, uint length, IFileSection location) => Intersect(offset, length,
-            (uint)location.StartOffset, location.EndOffset - location.StartOffset);
+        private static bool Intersect(uint offset, uint length, IFileSection location) =>
+            Intersect(
+                offset,
+                length,
+                (uint)location.StartOffset,
+                location.EndOffset - location.StartOffset
+            );
 
         public bool DotNetSafeWriteOffset(uint offset, byte[] data)
         {

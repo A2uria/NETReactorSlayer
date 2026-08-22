@@ -48,11 +48,21 @@ namespace NETReactorSlayer.Core.Helper
         {
             const int maxBytesRead = 0x200000;
 
-            using var fileStream = new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read);
+            using var fileStream = new FileStream(
+                filename,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.Read
+            );
             var fileData = new byte[(int)fileStream.Length];
 
-            int bytes, offset = 0, length = fileData.Length;
-            while ((bytes = fileStream.Read(fileData, offset, Math.Min(maxBytesRead, length - offset))) > 0)
+            int bytes,
+                offset = 0,
+                length = fileData.Length;
+            while (
+                (bytes = fileStream.Read(fileData, offset, Math.Min(maxBytesRead, length - offset)))
+                > 0
+            )
                 offset += bytes;
             if (offset != length)
                 throw new ApplicationException("Could not read all bytes");
@@ -69,7 +79,8 @@ namespace NETReactorSlayer.Core.Helper
             return transform.TransformFinalBlock(data, 0, data.Length);
         }
 
-        public static byte[] Inflate(byte[] data, bool noHeader) => Inflate(data, 0, data.Length, noHeader);
+        public static byte[] Inflate(byte[] data, bool noHeader) =>
+            Inflate(data, 0, data.Length, noHeader);
 
         public static byte[] Inflate(byte[] data, int start, int len, bool noHeader) =>
             Inflate(data, start, len, new Inflater(noHeader));

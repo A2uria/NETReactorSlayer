@@ -56,8 +56,15 @@ namespace NETReactorSlayer.De4dot.Renamer
 
         private void RenameResourceKeys()
         {
-            foreach (var module in _modules.TheModules.Where(module => module.ObfuscatedFile.RenameResourceKeys))
-                new ResourceKeysRenamer(module.ModuleDefMd, module.ObfuscatedFile.NameChecker).Rename();
+            foreach (
+                var module in _modules.TheModules.Where(module =>
+                    module.ObfuscatedFile.RenameResourceKeys
+                )
+            )
+                new ResourceKeysRenamer(
+                    module.ModuleDefMd,
+                    module.ObfuscatedFile.NameChecker
+                ).Rename();
         }
 
         private static void RemoveUselessOverrides(MethodNameGroups groups)
@@ -83,8 +90,11 @@ namespace NETReactorSlayer.De4dot.Renamer
 
         private void RenameTypeDefs()
         {
-            foreach (var module in
-                     _modules.TheModules.Where(module => module.ObfuscatedFile.RemoveNamespaceWithOneType))
+            foreach (
+                var module in _modules.TheModules.Where(module =>
+                    module.ObfuscatedFile.RemoveNamespaceWithOneType
+                )
+            )
                 RemoveOneClassNamespaces(module);
 
             var state = new TypeRenamerState();
@@ -113,7 +123,8 @@ namespace NETReactorSlayer.De4dot.Renamer
 
             var sortedNamespaces = new List<List<MTypeDef>>(nsToTypes.Values);
             sortedNamespaces.Sort(
-                (a, b) => UTF8String.CompareTo(a[0].TypeDef.Namespace, b[0].TypeDef.Namespace));
+                (a, b) => UTF8String.CompareTo(a[0].TypeDef.Namespace, b[0].TypeDef.Namespace)
+            );
             foreach (var list in sortedNamespaces)
             {
                 const int maxClasses = 1;
@@ -275,8 +286,11 @@ namespace NETReactorSlayer.De4dot.Renamer
 
         private void RenameResources(Module module)
         {
-            var renamedTypes = module.GetAllTypes().Select(type => _memberInfos.Type(type))
-                .Where(info => info.OldFullName != info.Type.TypeDef.FullName).ToList();
+            var renamedTypes = module
+                .GetAllTypes()
+                .Select(type => _memberInfos.Type(type))
+                .Where(info => info.OldFullName != info.Type.TypeDef.FullName)
+                .ToList();
 
             if (renamedTypes.Count == 0)
                 return;
@@ -338,15 +352,20 @@ namespace NETReactorSlayer.De4dot.Renamer
                 return;
             foreach (var group in allGroups)
             {
-                var prop = (from method in @group.Methods
+                var prop = (
+                    from method in @group.Methods
                     where method.Property != null
                     where !method.Owner.HasModule
-                    select method.Property).FirstOrDefault();
+                    select method.Property
+                ).FirstOrDefault();
 
                 if (prop == null)
                     continue;
-                foreach (var method in group.Methods.Where(method => method.Owner.HasModule)
-                             .Where(method => method.Property != null))
+                foreach (
+                    var method in group
+                        .Methods.Where(method => method.Owner.HasModule)
+                        .Where(method => method.Property != null)
+                )
                     _memberInfos.Property(method.Property).Rename(prop.PropertyDef.Name.String);
             }
         }
@@ -357,15 +376,20 @@ namespace NETReactorSlayer.De4dot.Renamer
                 return;
             foreach (var group in allGroups)
             {
-                var evt = (from method in @group.Methods
+                var evt = (
+                    from method in @group.Methods
                     where method.Event != null
                     where !method.Owner.HasModule
-                    select method.Event).FirstOrDefault();
+                    select method.Event
+                ).FirstOrDefault();
 
                 if (evt == null)
                     continue;
-                foreach (var method in group.Methods.Where(method => method.Owner.HasModule)
-                             .Where(method => method.Event != null))
+                foreach (
+                    var method in group
+                        .Methods.Where(method => method.Owner.HasModule)
+                        .Where(method => method.Event != null)
+                )
                     _memberInfos.Event(method.Event).Rename(evt.EventDef.Name.String);
             }
         }
@@ -423,7 +447,11 @@ namespace NETReactorSlayer.De4dot.Renamer
                 CreateProperty(prop, method, "");
         }
 
-        private void CreateProperty(MPropertyDef propDef, MMethodDef methodDef, string overridePrefix)
+        private void CreateProperty(
+            MPropertyDef propDef,
+            MMethodDef methodDef,
+            string overridePrefix
+        )
         {
             if (!methodDef.Owner.HasModule)
                 return;
@@ -449,17 +477,27 @@ namespace NETReactorSlayer.De4dot.Renamer
                 if (Utils.StartsWith(methodName, "get_", StringComparison.Ordinal))
                 {
                     var propName = methodName.Substring(4);
-                    foreach (var method in group.Methods.Where(method => !onlyRenamableMethods ||
-                                                                         _memberInfos.Type(method.Owner).NameChecker
-                                                                             .IsValidPropertyName(propName)))
+                    foreach (
+                        var method in group.Methods.Where(method =>
+                            !onlyRenamableMethods
+                            || _memberInfos
+                                .Type(method.Owner)
+                                .NameChecker.IsValidPropertyName(propName)
+                        )
+                    )
                         CreatePropertyGetter(propName, method);
                 }
                 else if (Utils.StartsWith(methodName, "set_", StringComparison.Ordinal))
                 {
                     var propName = methodName.Substring(4);
-                    foreach (var method in group.Methods.Where(method => !onlyRenamableMethods ||
-                                                                         _memberInfos.Type(method.Owner).NameChecker
-                                                                             .IsValidPropertyName(propName)))
+                    foreach (
+                        var method in group.Methods.Where(method =>
+                            !onlyRenamableMethods
+                            || _memberInfos
+                                .Type(method.Owner)
+                                .NameChecker.IsValidPropertyName(propName)
+                        )
+                    )
                         CreatePropertySetter(propName, method);
                 }
             }
@@ -523,15 +561,24 @@ namespace NETReactorSlayer.De4dot.Renamer
             propMethod.Property = propDef;
         }
 
-        private MPropertyDef CreateProperty(MTypeDef ownerType, string name, TypeSig propType, MethodDef getter,
-            MethodDef setter)
+        private MPropertyDef CreateProperty(
+            MTypeDef ownerType,
+            string name,
+            TypeSig propType,
+            MethodDef getter,
+            MethodDef setter
+        )
         {
             if (string.IsNullOrEmpty(name) || propType.ElementType == ElementType.Void)
                 return null;
-            var newSig = CreatePropertySig(getter, propType, true) ?? CreatePropertySig(setter, propType, false);
+            var newSig =
+                CreatePropertySig(getter, propType, true)
+                ?? CreatePropertySig(setter, propType, false);
             if (newSig == null)
                 return null;
-            var newProp = ownerType.Module.ModuleDefMd.UpdateRowId(new PropertyDefUser(name, newSig, 0));
+            var newProp = ownerType.Module.ModuleDefMd.UpdateRowId(
+                new PropertyDefUser(name, newSig, 0)
+            );
             newProp.GetMethod = getter;
             newProp.SetMethod = setter;
             var propDef = ownerType.FindAny(newProp);
@@ -543,7 +590,11 @@ namespace NETReactorSlayer.De4dot.Renamer
             return propDef;
         }
 
-        private static PropertySig CreatePropertySig(IMethod method, TypeSig propType, bool isGetter)
+        private static PropertySig CreatePropertySig(
+            IMethod method,
+            TypeSig propType,
+            bool isGetter
+        )
         {
             var sig = method?.MethodSig;
             if (sig == null)
@@ -551,7 +602,7 @@ namespace NETReactorSlayer.De4dot.Renamer
 
             var newSig = new PropertySig(sig.HasThis, propType)
             {
-                GenParamCount = sig.GenParamCount
+                GenParamCount = sig.GenParamCount,
             };
 
             var count = sig.Params.Count;
@@ -588,8 +639,12 @@ namespace NETReactorSlayer.De4dot.Renamer
             if (theEvent == null)
                 return;
 
-            CreateEvent(theEvent, eventMethod, GetEventMethodType(overriddenMethod),
-                GetOverridePrefix(group, eventMethod));
+            CreateEvent(
+                theEvent,
+                eventMethod,
+                GetEventMethodType(overriddenMethod),
+                GetOverridePrefix(group, eventMethod)
+            );
         }
 
         private void RestoreVirtualEvents(MethodNameGroup group)
@@ -621,8 +676,12 @@ namespace NETReactorSlayer.De4dot.Renamer
                 CreateEvent(evt, method, methodType, "");
         }
 
-        private void CreateEvent(MEventDef eventDef, MMethodDef methodDef, EventMethodType methodType,
-            string overridePrefix)
+        private void CreateEvent(
+            MEventDef eventDef,
+            MMethodDef methodDef,
+            EventMethodType methodType,
+            string overridePrefix
+        )
         {
             if (!methodDef.Owner.HasModule)
                 return;
@@ -665,17 +724,27 @@ namespace NETReactorSlayer.De4dot.Renamer
                 if (Utils.StartsWith(methodName, "add_", StringComparison.Ordinal))
                 {
                     var eventName = methodName.Substring(4);
-                    foreach (var method in group.Methods.Where(method =>
-                                 !onlyRenamableMethods ||
-                                 _memberInfos.Type(method.Owner).NameChecker.IsValidEventName(eventName)))
+                    foreach (
+                        var method in group.Methods.Where(method =>
+                            !onlyRenamableMethods
+                            || _memberInfos
+                                .Type(method.Owner)
+                                .NameChecker.IsValidEventName(eventName)
+                        )
+                    )
                         CreateEventAdder(eventName, method);
                 }
                 else if (Utils.StartsWith(methodName, "remove_", StringComparison.Ordinal))
                 {
                     var eventName = methodName.Substring(7);
-                    foreach (var method in group.Methods.Where(method =>
-                                 !onlyRenamableMethods ||
-                                 _memberInfos.Type(method.Owner).NameChecker.IsValidEventName(eventName)))
+                    foreach (
+                        var method in group.Methods.Where(method =>
+                            !onlyRenamableMethods
+                            || _memberInfos
+                                .Type(method.Owner)
+                                .NameChecker.IsValidEventName(eventName)
+                        )
+                    )
                         CreateEventRemover(eventName, method);
                 }
             }
@@ -745,10 +814,15 @@ namespace NETReactorSlayer.De4dot.Renamer
 
         private MEventDef CreateEvent(MTypeDef ownerType, string name, TypeSig eventType)
         {
-            if (string.IsNullOrEmpty(name) || eventType == null || eventType.ElementType == ElementType.Void)
+            if (
+                string.IsNullOrEmpty(name)
+                || eventType == null
+                || eventType.ElementType == ElementType.Void
+            )
                 return null;
-            var newEvent =
-                ownerType.Module.ModuleDefMd.UpdateRowId(new EventDefUser(name, eventType.ToTypeDefOrRef(), 0));
+            var newEvent = ownerType.Module.ModuleDefMd.UpdateRowId(
+                new EventDefUser(name, eventType.ToTypeDefOrRef(), 0)
+            );
             var eventDef = ownerType.FindAny(newEvent);
             if (eventDef != null)
                 return eventDef;
@@ -768,9 +842,10 @@ namespace NETReactorSlayer.De4dot.Renamer
             var eventMethods = new GroupHelper(_memberInfos, _modules.AllTypes);
             foreach (var group in GetSorted(groups))
                 if (group.HasNonRenamableMethod()) { }
-                else if (group.HasGetterOrSetterPropertyMethod() &&
-                         GetPropertyMethodType(group.Methods[0]) !=
-                         PropertyMethodType.Other)
+                else if (
+                    group.HasGetterOrSetterPropertyMethod()
+                    && GetPropertyMethodType(group.Methods[0]) != PropertyMethodType.Other
+                )
                     propMethods.Add(group);
                 else if (group.HasAddRemoveOrRaiseEventMethod())
                     eventMethods.Add(group);
@@ -842,8 +917,9 @@ namespace NETReactorSlayer.De4dot.Renamer
                 var overrideDef = _modules.ResolveMethod(overrideRef);
                 if (overrideDef == null)
                 {
-                    var typeDef = _modules.ResolveType(overrideRef.DeclaringType) ??
-                                  _modules.ResolveOther(overrideRef.DeclaringType);
+                    var typeDef =
+                        _modules.ResolveType(overrideRef.DeclaringType)
+                        ?? _modules.ResolveOther(overrideRef.DeclaringType);
                     if (typeDef == null)
                         continue;
                     overrideDef = typeDef.FindMethod(overrideRef);
@@ -859,7 +935,9 @@ namespace NETReactorSlayer.De4dot.Renamer
             var argNames = new string[group.Methods[0].ParamDefs.Count];
             foreach (var method in methods)
             {
-                var nameChecker = !method.Owner.HasModule ? null : method.Owner.Module.ObfuscatedFile.NameChecker;
+                var nameChecker = !method.Owner.HasModule
+                    ? null
+                    : method.Owner.Module.ObfuscatedFile.NameChecker;
                 for (var i = 0; i < argNames.Length; i++)
                 {
                     var argName = method.ParamDefs[i].ParameterDef.Name;
@@ -901,7 +979,12 @@ namespace NETReactorSlayer.De4dot.Renamer
 
         private void PrepareRenameEvent(MethodNameGroup group, bool renameOverrides)
         {
-            var eventName = PrepareRenameEvent(group, renameOverrides, out var overridePrefix, out var methodPrefix);
+            var eventName = PrepareRenameEvent(
+                group,
+                renameOverrides,
+                out var overridePrefix,
+                out var methodPrefix
+            );
             if (eventName == null)
                 return;
 
@@ -910,8 +993,12 @@ namespace NETReactorSlayer.De4dot.Renamer
                 _memberInfos.Method(method).Rename(methodName);
         }
 
-        private string PrepareRenameEvent(MethodNameGroup group, bool renameOverrides, out string overridePrefix,
-            out string methodPrefix)
+        private string PrepareRenameEvent(
+            MethodNameGroup group,
+            bool renameOverrides,
+            out string overridePrefix,
+            out string methodPrefix
+        )
         {
             var eventMethod = GetEventMethod(group);
             if (eventMethod == null)
@@ -935,7 +1022,8 @@ namespace NETReactorSlayer.De4dot.Renamer
                     return null;
             }
 
-            string newEventName, oldEventName;
+            string newEventName,
+                oldEventName;
             var eventInfo = _memberInfos.Event(eventDef);
 
             var mustUseOldEventName = false;
@@ -949,22 +1037,25 @@ namespace NETReactorSlayer.De4dot.Renamer
                 else
                 {
                     mustUseOldEventName = true;
-                    oldEventName = GetRealName(_memberInfos.TryGetEvent(overriddenEventDef, out var info)
-                        ? info.NewName
-                        : overriddenEventDef.EventDef.Name.String);
+                    oldEventName = GetRealName(
+                        _memberInfos.TryGetEvent(overriddenEventDef, out var info)
+                            ? info.NewName
+                            : overriddenEventDef.EventDef.Name.String
+                    );
                 }
             }
 
             if (eventInfo.Renamed)
                 newEventName = GetRealName(eventInfo.NewName);
-            else if (mustUseOldEventName ||
-                     eventDef.Owner.Module.ObfuscatedFile.NameChecker.IsValidEventName(oldEventName))
+            else if (
+                mustUseOldEventName
+                || eventDef.Owner.Module.ObfuscatedFile.NameChecker.IsValidEventName(oldEventName)
+            )
                 newEventName = oldEventName;
             else
             {
                 _mergeStateHelper.Merge(MergeStateFlags.Events, group);
-                newEventName = GetAvailableName("Event_", false, group,
-                    IsEventAvailable);
+                newEventName = GetAvailableName("Event_", false, group, IsEventAvailable);
             }
 
             var newEventNameWithPrefix = overridePrefix + newEventName;
@@ -979,9 +1070,13 @@ namespace NETReactorSlayer.De4dot.Renamer
             return newEventName;
         }
 
-        private MEventDef GetOverriddenEvent(MMethodDef overrideMethod) => GetOverriddenEvent(overrideMethod, out _);
+        private MEventDef GetOverriddenEvent(MMethodDef overrideMethod) =>
+            GetOverriddenEvent(overrideMethod, out _);
 
-        private MEventDef GetOverriddenEvent(MMethodDef overrideMethod, out MMethodDef overriddenMethod)
+        private MEventDef GetOverriddenEvent(
+            MMethodDef overrideMethod,
+            out MMethodDef overriddenMethod
+        )
         {
             var theMethod = overrideMethod.MethodDef.Overrides[0].MethodDeclaration;
             overriddenMethod = _modules.ResolveMethod(theMethod);
@@ -1012,7 +1107,7 @@ namespace NETReactorSlayer.De4dot.Renamer
                 PropertyMethodType.Getter => "get_",
                 PropertyMethodType.Setter => "set_",
                 PropertyMethodType.Other => throw new ApplicationException("Invalid property type"),
-                _ => throw new ApplicationException("Invalid property type")
+                _ => throw new ApplicationException("Invalid property type"),
             };
 
             var methodName = overridePrefix + methodPrefix + propName;
@@ -1020,7 +1115,11 @@ namespace NETReactorSlayer.De4dot.Renamer
                 _memberInfos.Method(method).Rename(methodName);
         }
 
-        private string PrepareRenameProperty(MethodNameGroup group, bool renameOverrides, out string overridePrefix)
+        private string PrepareRenameProperty(
+            MethodNameGroup group,
+            bool renameOverrides,
+            out string overridePrefix
+        )
         {
             var propMethod = GetPropertyMethod(group);
             if (propMethod == null)
@@ -1035,7 +1134,8 @@ namespace NETReactorSlayer.De4dot.Renamer
                     return null;
             }
 
-            string newPropName, oldPropName;
+            string newPropName,
+                oldPropName;
             var propDef = propMethod.Property;
             var propInfo = _memberInfos.Property(propDef);
 
@@ -1050,16 +1150,20 @@ namespace NETReactorSlayer.De4dot.Renamer
                 else
                 {
                     mustUseOldPropName = true;
-                    oldPropName = GetRealName(_memberInfos.TryGetProperty(overriddenPropDef, out var info)
-                        ? info.NewName
-                        : overriddenPropDef.PropertyDef.Name.String);
+                    oldPropName = GetRealName(
+                        _memberInfos.TryGetProperty(overriddenPropDef, out var info)
+                            ? info.NewName
+                            : overriddenPropDef.PropertyDef.Name.String
+                    );
                 }
             }
 
             if (propInfo.Renamed)
                 newPropName = GetRealName(propInfo.NewName);
-            else if (mustUseOldPropName ||
-                     propDef.Owner.Module.ObfuscatedFile.NameChecker.IsValidPropertyName(oldPropName))
+            else if (
+                mustUseOldPropName
+                || propDef.Owner.Module.ObfuscatedFile.NameChecker.IsValidPropertyName(oldPropName)
+            )
                 newPropName = oldPropName;
             else if (IsItemProperty(group))
                 newPropName = "Item";
@@ -1074,8 +1178,7 @@ namespace NETReactorSlayer.De4dot.Renamer
                 }
 
                 _mergeStateHelper.Merge(MergeStateFlags.Properties, group);
-                newPropName = GetAvailableName(propPrefix, trySameName, group,
-                    IsPropertyAvailable);
+                newPropName = GetAvailableName(propPrefix, trySameName, group, IsPropertyAvailable);
             }
 
             var newPropNameWithPrefix = overridePrefix + newPropName;
@@ -1091,7 +1194,9 @@ namespace NETReactorSlayer.De4dot.Renamer
         }
 
         private static bool IsItemProperty(MethodNameGroup group) =>
-            group.Methods.Any(method => method.Property != null && method.Property.IsItemProperty());
+            group.Methods.Any(method =>
+                method.Property != null && method.Property.IsItemProperty()
+            );
 
         private MPropertyDef GetOverriddenProperty(MMethodDef overrideMethod)
         {
@@ -1111,12 +1216,14 @@ namespace NETReactorSlayer.De4dot.Renamer
         private static MMethodDef GetPropertyMethod(MethodNameGroup group) =>
             group.Methods.FirstOrDefault(method => method.Property != null);
 
-        private string GetSuggestedPropertyName(MethodNameGroup group) => (from method in @group.Methods
-            where method.Property != null
-            select _memberInfos.Property(method.Property)
-            into info
-            where info.SuggestedName != null
-            select info.SuggestedName).FirstOrDefault();
+        private string GetSuggestedPropertyName(MethodNameGroup group) =>
+            (
+                from method in @group.Methods
+                where method.Property != null
+                select _memberInfos.Property(method.Property) into info
+                where info.SuggestedName != null
+                select info.SuggestedName
+            ).FirstOrDefault();
 
         internal static ITypeDefOrRef GetScopeType(TypeSig typeSig)
         {
@@ -1169,7 +1276,8 @@ namespace NETReactorSlayer.De4dot.Renamer
             return prefix.ToUpperInvariant() + UpperFirst(name) + "_";
         }
 
-        private static string UpperFirst(string s) => s.Substring(0, 1).ToUpperInvariant() + s.Substring(1);
+        private static string UpperFirst(string s) =>
+            s.Substring(0, 1).ToUpperInvariant() + s.Substring(1);
 
         private static string GetPrefix(TypeSig typeRef)
         {
@@ -1188,7 +1296,9 @@ namespace NETReactorSlayer.De4dot.Renamer
         {
             if (DotNetUtils.HasReturnValue(method.MethodDef))
                 return PropertyMethodType.Getter;
-            return method.VisibleParameterCount > 0 ? PropertyMethodType.Setter : PropertyMethodType.Other;
+            return method.VisibleParameterCount > 0
+                ? PropertyMethodType.Setter
+                : PropertyMethodType.Other;
         }
 
         private static TypeSig GetPropertyType(MethodNameGroup group)
@@ -1198,10 +1308,13 @@ namespace NETReactorSlayer.De4dot.Renamer
                 return null;
 
             TypeSig type = null;
-            foreach (var propType in group.Methods.Select(propMethod =>
-                         methodType == PropertyMethodType.Setter
-                             ? propMethod.ParamDefs[propMethod.ParamDefs.Count - 1].ParameterDef.Type
-                             : propMethod.MethodDef.MethodSig.GetRetType()))
+            foreach (
+                var propType in group.Methods.Select(propMethod =>
+                    methodType == PropertyMethodType.Setter
+                        ? propMethod.ParamDefs[propMethod.ParamDefs.Count - 1].ParameterDef.Type
+                        : propMethod.MethodDef.MethodSig.GetRetType()
+                )
+            )
                 if (type == null)
                     type = propType;
                 else if (!new SigComparer().Equals(type, propType))
@@ -1213,7 +1326,11 @@ namespace NETReactorSlayer.De4dot.Renamer
         private static MMethodDef GetOverrideMethod(MethodNameGroup group) =>
             group.Methods.FirstOrDefault(method => method.MethodDef.Overrides.Count > 0);
 
-        private void PrepareRenameVirtualMethods(MethodNameGroup group, string namePrefix, bool renameOverrides)
+        private void PrepareRenameVirtualMethods(
+            MethodNameGroup group,
+            string namePrefix,
+            bool renameOverrides
+        )
         {
             if (!HasInvalidMethodName(group))
                 return;
@@ -1241,9 +1358,11 @@ namespace NETReactorSlayer.De4dot.Renamer
             {
                 _memberInfos.Method(overrideMethod);
                 var overriddenMethod = GetOverriddenMethod(overrideMethod);
-                newMethodName = GetRealName(overriddenMethod == null
-                    ? overrideMethod.MethodDef.Overrides[0].MethodDeclaration.Name.String
-                    : _memberInfos.Method(overriddenMethod).NewName);
+                newMethodName = GetRealName(
+                    overriddenMethod == null
+                        ? overrideMethod.MethodDef.Overrides[0].MethodDeclaration.Name.String
+                        : _memberInfos.Method(overriddenMethod).NewName
+                );
             }
             else
             {
@@ -1251,8 +1370,7 @@ namespace NETReactorSlayer.De4dot.Renamer
                 if (newMethodName == null)
                 {
                     _mergeStateHelper.Merge(MergeStateFlags.Methods, group);
-                    newMethodName = GetAvailableName(namePrefix, false, group,
-                        IsMethodAvailable);
+                    newMethodName = GetAvailableName(namePrefix, false, group, IsMethodAvailable);
                 }
             }
 
@@ -1264,22 +1382,31 @@ namespace NETReactorSlayer.De4dot.Renamer
         private MMethodDef GetOverriddenMethod(MMethodDef overrideMethod) =>
             _modules.ResolveMethod(overrideMethod.MethodDef.Overrides[0].MethodDeclaration);
 
-        private string GetSuggestedMethodName(MethodNameGroup group) => (from method in @group.Methods
-            select _memberInfos.Method(method)
-            into info
-            where info.SuggestedName != null
-            select info.SuggestedName).FirstOrDefault();
+        private string GetSuggestedMethodName(MethodNameGroup group) =>
+            (
+                from method in @group.Methods
+                select _memberInfos.Method(method) into info
+                where info.SuggestedName != null
+                select info.SuggestedName
+            ).FirstOrDefault();
 
-        private bool HasInvalidMethodName(MethodNameGroup group) => (from method in @group.Methods
-            let typeInfo = _memberInfos.Type(method.Owner)
-            let methodInfo = _memberInfos.Method(method)
-            where !typeInfo.NameChecker.IsValidMethodName(methodInfo.OldName)
-            select typeInfo).Any();
+        private bool HasInvalidMethodName(MethodNameGroup group) =>
+            (
+                from method in @group.Methods
+                let typeInfo = _memberInfos.Type(method.Owner)
+                let methodInfo = _memberInfos.Method(method)
+                where !typeInfo.NameChecker.IsValidMethodName(methodInfo.OldName)
+                select typeInfo
+            ).Any();
 
-        private static string GetAvailableName(string prefix, bool tryWithoutZero, MethodNameGroup group,
-            Func<MethodNameGroup, string, bool> checkAvailable)
+        private static string GetAvailableName(
+            string prefix,
+            bool tryWithoutZero,
+            MethodNameGroup group,
+            Func<MethodNameGroup, string, bool> checkAvailable
+        )
         {
-            for (var i = 0;; i++)
+            for (var i = 0; ; i++)
             {
                 var newName = i == 0 && tryWithoutZero ? prefix : prefix + i;
                 if (checkAvailable(group, newName))
@@ -1287,29 +1414,35 @@ namespace NETReactorSlayer.De4dot.Renamer
             }
         }
 
-        private bool IsMethodAvailable(MethodNameGroup group, string methodName) => group.Methods.All(method =>
-            !_memberInfos.Type(method.Owner).VariableNameState.IsMethodNameUsed(methodName));
+        private bool IsMethodAvailable(MethodNameGroup group, string methodName) =>
+            group.Methods.All(method =>
+                !_memberInfos.Type(method.Owner).VariableNameState.IsMethodNameUsed(methodName)
+            );
 
-        private bool IsPropertyAvailable(MethodNameGroup group, string methodName) => group.Methods.All(method =>
-            !_memberInfos.Type(method.Owner).VariableNameState.IsPropertyNameUsed(methodName));
+        private bool IsPropertyAvailable(MethodNameGroup group, string methodName) =>
+            group.Methods.All(method =>
+                !_memberInfos.Type(method.Owner).VariableNameState.IsPropertyNameUsed(methodName)
+            );
 
-        private bool IsEventAvailable(MethodNameGroup group, string methodName) => group.Methods.All(method =>
-            !_memberInfos.Type(method.Owner).VariableNameState.IsEventNameUsed(methodName));
+        private bool IsEventAvailable(MethodNameGroup group, string methodName) =>
+            group.Methods.All(method =>
+                !_memberInfos.Type(method.Owner).VariableNameState.IsEventNameUsed(methodName)
+            );
 
         private bool HasDelegateOwner(MethodNameGroup group) =>
             group.Methods.Any(method => _isDelegateClass.Check(method.Owner));
 
         private void PrepareRenameEntryPoints()
         {
-            foreach (var methodDef in from module in _modules.TheModules
-                     select module.ModuleDefMd.EntryPoint
-                     into entryPoint
-                     where entryPoint != null
-                     select _modules.ResolveMethod(entryPoint)
-                     into methodDef
-                     where methodDef != null
-                     where methodDef.IsStatic()
-                     select methodDef)
+            foreach (
+                var methodDef in from module in _modules.TheModules
+                select module.ModuleDefMd.EntryPoint into entryPoint
+                where entryPoint != null
+                select _modules.ResolveMethod(entryPoint) into methodDef
+                where methodDef != null
+                where methodDef.IsStatic()
+                select methodDef
+            )
             {
                 _memberInfos.Method(methodDef).SuggestedName = "Main";
                 if (methodDef.ParamDefs.Count != 1)
@@ -1332,7 +1465,7 @@ namespace NETReactorSlayer.De4dot.Renamer
         private static readonly string[] DelegateClasses =
         {
             "System.Delegate",
-            "System.MulticastDelegate"
+            "System.MulticastDelegate",
         };
 
         private static readonly Regex RemoveGenericsArityRegex = new(@"`[0-9]+");
@@ -1511,7 +1644,7 @@ namespace NETReactorSlayer.De4dot.Renamer
             Other,
             Adder,
             Remover,
-            Raiser
+            Raiser,
         }
 
         [Flags]
@@ -1520,10 +1653,15 @@ namespace NETReactorSlayer.De4dot.Renamer
             None = 0,
             Methods = 0x1,
             Properties = 0x2,
-            Events = 0x4
+            Events = 0x4,
         }
 
-        private enum PropertyMethodType { Other, Getter, Setter }
+        private enum PropertyMethodType
+        {
+            Other,
+            Getter,
+            Setter,
+        }
 
         private class PrepareHelper
         {

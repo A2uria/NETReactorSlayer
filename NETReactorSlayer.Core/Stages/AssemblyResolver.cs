@@ -46,7 +46,13 @@ namespace NETReactorSlayer.Core.Stages
                 Cleaner.AddResourceToBeRemoved(asm);
                 count++;
                 var name = GetAssemblyName(asm, false) + ".dll";
-                try { File.WriteAllBytes(Context.Options.SourceDir + "\\" + name, asm.CreateReader().ToArray()); }
+                try
+                {
+                    File.WriteAllBytes(
+                        Context.Options.SourceDir + "\\" + name,
+                        asm.CreateReader().ToArray()
+                    );
+                }
                 catch { }
             }
 
@@ -55,24 +61,39 @@ namespace NETReactorSlayer.Core.Stages
 
         private void FindRequirements()
         {
-            foreach (var type in from x in Context.Module.GetTypes()
-                     where x.HasFields && !x.HasNestedTypes && !x.HasEvents && !x.HasProperties
-                     select x)
-            foreach (var method in from x in type.Methods.ToArray()
-                     where x.HasBody && x.Body.HasInstructions && x.IsStatic &&
-                           DotNetUtils.IsMethod(x, "System.Void", "()") && x.DeclaringType != null
-                     select x)
+            foreach (
+                var type in from x in Context.Module.GetTypes()
+                where x.HasFields && !x.HasNestedTypes && !x.HasEvents && !x.HasProperties
+                select x
+            )
+            foreach (
+                var method in from x in type.Methods.ToArray()
+                where
+                    x.HasBody
+                    && x.Body.HasInstructions
+                    && x.IsStatic
+                    && DotNetUtils.IsMethod(x, "System.Void", "()")
+                    && x.DeclaringType != null
+                select x
+            )
             foreach (var instr in method.Body.Instructions)
                 try
                 {
-                    if (instr.Operand == null || !instr.Operand.ToString()!.Contains("add_AssemblyResolve"))
+                    if (
+                        instr.Operand == null
+                        || !instr.Operand.ToString()!.Contains("add_AssemblyResolve")
+                    )
                         continue;
                     if (!CheckFields(method.DeclaringType.Fields))
                         continue;
                     if (!FindResolverMethod(type, out var methodDef))
                         continue;
                     var localTypes = new LocalTypes(methodDef);
-                    if (!localTypes.All(_locals1) && !localTypes.All(_locals2) && !localTypes.All(_locals3))
+                    if (
+                        !localTypes.All(_locals1)
+                        && !localTypes.All(_locals2)
+                        && !localTypes.All(_locals3)
+                    )
                         continue;
                     _resolverMethod = methodDef;
                     _resolverType = type;
@@ -85,11 +106,22 @@ namespace NETReactorSlayer.Core.Stages
         private static bool FindResolverMethod(TypeDef type, out MethodDef method)
         {
             method = null;
-            foreach (var methodDef in type.Methods.ToArray().Where(methodDef =>
-                         DotNetUtils.IsMethod(methodDef, "System.Reflection.Assembly",
-                             "(System.Object,System.Object)") ||
-                         DotNetUtils.IsMethod(methodDef, "System.Reflection.Assembly",
-                             "(System.Object,System.ResolveEventArgs)")))
+            foreach (
+                var methodDef in type
+                    .Methods.ToArray()
+                    .Where(methodDef =>
+                        DotNetUtils.IsMethod(
+                            methodDef,
+                            "System.Reflection.Assembly",
+                            "(System.Object,System.Object)"
+                        )
+                        || DotNetUtils.IsMethod(
+                            methodDef,
+                            "System.Reflection.Assembly",
+                            "(System.Object,System.ResolveEventArgs)"
+                        )
+                    )
+            )
             {
                 method = methodDef;
                 return true;
@@ -106,9 +138,13 @@ namespace NETReactorSlayer.Core.Stages
             if (fieldTypes.Count("System.Boolean") != 1 && fieldTypes.Count("System.Boolean") != 2)
                 return false;
             if (fields.Count > 2)
-                return fieldTypes.Count("System.Collections.Hashtable") == 2 || fieldTypes.Count("System.Object") == 2;
-            return fields.Count == 2 && (fieldTypes.Count("System.Collections.Hashtable") == 1 ||
-                                         fieldTypes.Count("System.Object") == 1);
+                return fieldTypes.Count("System.Collections.Hashtable") == 2
+                    || fieldTypes.Count("System.Object") == 2;
+            return fields.Count == 2
+                && (
+                    fieldTypes.Count("System.Collections.Hashtable") == 1
+                    || fieldTypes.Count("System.Object") == 1
+                );
         }
 
         private IEnumerable<EmbeddedResource> GetAssemblies(string prefix)
@@ -136,19 +172,34 @@ namespace NETReactorSlayer.Core.Stages
                     return module.Assembly.FullName;
                 return module.Assembly.Name;
             }
-            catch { return null; }
+            catch
+            {
+                return null;
+            }
         }
 
         private readonly string[] _locals1 =
         {
-            "System.Byte[]", "System.Reflection.Assembly", "System.String", "System.IO.BinaryReader", "System.IO.Stream"
+            "System.Byte[]",
+            "System.Reflection.Assembly",
+            "System.String",
+            "System.IO.BinaryReader",
+            "System.IO.Stream",
         };
 
         private readonly string[] _locals2 =
-            { "System.Reflection.Assembly", "System.IO.BinaryReader", "System.IO.Stream" };
+        {
+            "System.Reflection.Assembly",
+            "System.IO.BinaryReader",
+            "System.IO.Stream",
+        };
 
         private readonly string[] _locals3 =
-            { "System.Reflection.Assembly", "System.Reflection.Assembly[]", "System.IO.Stream" };
+        {
+            "System.Reflection.Assembly",
+            "System.Reflection.Assembly[]",
+            "System.IO.Stream",
+        };
 
         private IContext Context { get; set; }
         private MethodDef _initialMethod;

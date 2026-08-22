@@ -63,8 +63,12 @@ namespace NETReactorSlayer.Core
 
         private static bool CheckArguments(IReadOnlyList<string> args)
         {
-            if (args.Count != 3 || args[0] != "--del-temp" ||
-                !int.TryParse(args[1], out var id) || !File.Exists(args[2]))
+            if (
+                args.Count != 3
+                || args[0] != "--del-temp"
+                || !int.TryParse(args[1], out var id)
+                || !File.Exists(args[2])
+            )
                 return true;
 
             try
@@ -74,7 +78,10 @@ namespace NETReactorSlayer.Core
                     process.WaitForExit();
                     while (File.Exists(args[2]))
                     {
-                        try { File.Delete(args[2]); }
+                        try
+                        {
+                            File.Delete(args[2]);
+                        }
                         catch { }
 
                         Thread.Sleep(1000);
@@ -92,14 +99,24 @@ namespace NETReactorSlayer.Core
         private static void DeobfuscateBegin(IContext context)
         {
             const int maxStackSize = 1024 * 1024 * 64;
-            foreach (var thread in context.Options.Stages.Select(deobfuscatorStage => new Thread(() =>
-                     {
-                         try { deobfuscatorStage.Run(context); }
-                         catch (Exception ex)
-                         {
-                             context.Logger.Error($"{deobfuscatorStage.GetType().Name}: {ex.Message}");
-                         }
-                     }, maxStackSize)))
+            foreach (
+                var thread in context.Options.Stages.Select(deobfuscatorStage => new Thread(
+                    () =>
+                    {
+                        try
+                        {
+                            deobfuscatorStage.Run(context);
+                        }
+                        catch (Exception ex)
+                        {
+                            context.Logger.Error(
+                                $"{deobfuscatorStage.GetType().Name}: {ex.Message}"
+                            );
+                        }
+                    },
+                    maxStackSize
+                ))
+            )
             {
                 thread.Start();
                 thread.Join();
@@ -116,7 +133,8 @@ namespace NETReactorSlayer.Core
 
             if (CodeVirtualizationUtils.Detect(context))
                 context.Logger.Warn(
-                    "WARNING: CODE VIRTUALIZATION HAS BEEN DETECTED, INCOMPLETE DEOBFUSCATION OF THE ASSEMBLY MAY RESULT.");
+                    "WARNING: CODE VIRTUALIZATION HAS BEEN DETECTED, INCOMPLETE DEOBFUSCATION OF THE ASSEMBLY MAY RESULT."
+                );
 
             context.Save();
         }

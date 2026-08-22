@@ -27,7 +27,11 @@ namespace NETReactorSlayer.Core.Helper
         {
             if (fields == null)
                 return;
-            foreach (var type in fields.Select(field => field.FieldSig.GetFieldType()).Where(type => type != null))
+            foreach (
+                var type in fields
+                    .Select(field => field.FieldSig.GetFieldType())
+                    .Where(type => type != null)
+            )
                 Add(type.FullName);
         }
     }

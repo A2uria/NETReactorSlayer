@@ -85,8 +85,13 @@ namespace NETReactorSlayer.De4dot
             return index < 0 ? name : name.Substring(index + 1);
         }
 
-        public static bool StartsWith(string left, string right, StringComparison stringComparison) =>
-            left.Length >= right.Length && left.Substring(0, right.Length).Equals(right, stringComparison);
+        public static bool StartsWith(
+            string left,
+            string right,
+            StringComparison stringComparison
+        ) =>
+            left.Length >= right.Length
+            && left.Substring(0, right.Length).Equals(right, stringComparison);
 
         public static bool Compare(byte[] a, byte[] b)
         {

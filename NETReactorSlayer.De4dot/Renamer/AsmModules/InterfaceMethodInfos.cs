@@ -30,7 +30,10 @@ namespace NETReactorSlayer.De4dot.Renamer.AsmModules
                 var oldKey = oldTypeInfo.TypeRef;
                 var newKey = newTypeInfo.TypeRef;
 
-                var newMethodsInfo = new InterfaceMethodInfo(newTypeInfo, other._interfaceMethods[oldKey]);
+                var newMethodsInfo = new InterfaceMethodInfo(
+                    newTypeInfo,
+                    other._interfaceMethods[oldKey]
+                );
                 if (_interfaceMethods.ContainsKey(newKey))
                     newMethodsInfo.Merge(_interfaceMethods[newKey]);
                 _interfaceMethods[newKey] = newMethodsInfo;
@@ -44,10 +47,17 @@ namespace NETReactorSlayer.De4dot.Renamer.AsmModules
                 _interfaceMethods[key] = new InterfaceMethodInfo(iface);
         }
 
-        public MMethodDef AddMethod(TypeInfo iface, MMethodDef ifaceMethod, MMethodDef classMethod) =>
-            AddMethod(iface.TypeRef, ifaceMethod, classMethod);
+        public MMethodDef AddMethod(
+            TypeInfo iface,
+            MMethodDef ifaceMethod,
+            MMethodDef classMethod
+        ) => AddMethod(iface.TypeRef, ifaceMethod, classMethod);
 
-        public MMethodDef AddMethod(ITypeDefOrRef iface, MMethodDef ifaceMethod, MMethodDef classMethod)
+        public MMethodDef AddMethod(
+            ITypeDefOrRef iface,
+            MMethodDef ifaceMethod,
+            MMethodDef classMethod
+        )
         {
             if (!_interfaceMethods.TryGetValue(iface, out var info))
                 throw new ApplicationException("Could not find interface");
@@ -61,8 +71,9 @@ namespace NETReactorSlayer.De4dot.Renamer.AsmModules
             info.AddMethodIfEmpty(ifaceMethod, classMethod);
         }
 
-        private readonly Dictionary<ITypeDefOrRef, InterfaceMethodInfo> _interfaceMethods =
-            new(TypeEqualityComparer.Instance);
+        private readonly Dictionary<ITypeDefOrRef, InterfaceMethodInfo> _interfaceMethods = new(
+            TypeEqualityComparer.Instance
+        );
 
         public IEnumerable<InterfaceMethodInfo> AllInfos => _interfaceMethods.Values;
     }

@@ -128,7 +128,8 @@ namespace NETReactorSlayer.Core
                     case "--rename":
                     {
                         var chars = value.ToCharArray();
-                        RenamerFlags = RenamerFlags.RenameMethodArgs | RenamerFlags.RenameGenericParams;
+                        RenamerFlags =
+                            RenamerFlags.RenameMethodArgs | RenamerFlags.RenameGenericParams;
                         foreach (var @char in chars)
                             switch (@char)
                             {
@@ -145,12 +146,16 @@ namespace NETReactorSlayer.Core
                                     RenamerFlags |= RenamerFlags.RenameFields;
                                     break;
                                 case 'p':
-                                    RenamerFlags |= RenamerFlags.RenameProperties | RenamerFlags.RestoreProperties |
-                                                    RenamerFlags.RestorePropertiesFromNames;
+                                    RenamerFlags |=
+                                        RenamerFlags.RenameProperties
+                                        | RenamerFlags.RestoreProperties
+                                        | RenamerFlags.RestorePropertiesFromNames;
                                     break;
                                 case 'e':
-                                    RenamerFlags |= RenamerFlags.RenameEvents | RenamerFlags.RestoreEvents |
-                                                    RenamerFlags.RestoreEventsFromNames;
+                                    RenamerFlags |=
+                                        RenamerFlags.RenameEvents
+                                        | RenamerFlags.RestoreEvents
+                                        | RenamerFlags.RestoreEventsFromNames;
                                     break;
                             }
 
@@ -170,9 +175,7 @@ namespace NETReactorSlayer.Core
         }
 
         private void RemoveStage(MemberInfo memberInfo) =>
-            Stages.Remove(
-                Stages.FirstOrDefault(x =>
-                    x.GetType().Name == memberInfo.Name));
+            Stages.Remove(Stages.FirstOrDefault(x => x.GetType().Name == memberInfo.Name));
 
         public string SourceDir { get; set; }
         public string SourceFileExt { get; set; }
@@ -202,33 +205,34 @@ namespace NETReactorSlayer.Core
         public bool RenameShort { get; set; }
 
         public RenamerFlags RenamerFlags { get; set; } =
-            RenamerFlags.RenameNamespaces |
-            RenamerFlags.RenameTypes |
-            RenamerFlags.RenameEvents |
-            RenamerFlags.RenameFields |
-            RenamerFlags.RenameMethods |
-            RenamerFlags.RenameMethodArgs |
-            RenamerFlags.RenameGenericParams |
-            RenamerFlags.RestoreEventsFromNames |
-            RenamerFlags.RestoreEvents;
+            RenamerFlags.RenameNamespaces
+            | RenamerFlags.RenameTypes
+            | RenamerFlags.RenameEvents
+            | RenamerFlags.RenameFields
+            | RenamerFlags.RenameMethods
+            | RenamerFlags.RenameMethodArgs
+            | RenamerFlags.RenameGenericParams
+            | RenamerFlags.RestoreEventsFromNames
+            | RenamerFlags.RestoreEvents;
 
-        public List<IStage> Stages { get; set; } = new()
-        {
-            new MethodDecrypter(),
-            new ControlFlowDeobfuscator(),
-            new AntiManipulationPatcher(),
-            new MethodInliner(),
-            new ProxyCallFixer(),
-            new StringDecrypter(),
-            new ResourceResolver(),
-            new AssemblyResolver(),
-            new CosturaDumper(),
-            new TokenDeobfuscator(),
-            new BooleanDecrypter(),
-            new StrongNamePatcher(),
-            new TypeRestorer(),
-            new Cleaner(),
-            new SymbolRenamer()
-        };
+        public List<IStage> Stages { get; set; } =
+            new()
+            {
+                new MethodDecrypter(),
+                new ControlFlowDeobfuscator(),
+                new AntiManipulationPatcher(),
+                new MethodInliner(),
+                new ProxyCallFixer(),
+                new StringDecrypter(),
+                new ResourceResolver(),
+                new AssemblyResolver(),
+                new CosturaDumper(),
+                new TokenDeobfuscator(),
+                new BooleanDecrypter(),
+                new StrongNamePatcher(),
+                new TypeRestorer(),
+                new Cleaner(),
+                new SymbolRenamer(),
+            };
     }
 }

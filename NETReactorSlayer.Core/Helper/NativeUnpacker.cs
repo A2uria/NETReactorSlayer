@@ -71,16 +71,21 @@ namespace NETReactorSlayer.Core.Helper
                     ? null
                     : (asmLoader.Resources[0] as EmbeddedResource)?.CreateReader().ToArray();
             }
-            catch { return null; }
+            catch
+            {
+                return null;
+            }
         }
 
         private byte[] GetKeyData()
         {
             _isNet1X = false;
-            foreach (var item in from item in _baseOffsets
-                     let code = _peImage.OffsetReadBytes(item, _decryptMethodPattern.Length)
-                     where DeobUtils.IsCode(_decryptMethodPattern, code)
-                     select item)
+            foreach (
+                var item in from item in _baseOffsets
+                let code = _peImage.OffsetReadBytes(item, _decryptMethodPattern.Length)
+                where DeobUtils.IsCode(_decryptMethodPattern, code)
+                select item
+            )
                 return GetKeyData(item);
 
             var net1XCode = _peImage.OffsetReadBytes(0x207E0, _startMethodNet1XPattern.Length);
@@ -98,24 +103,47 @@ namespace NETReactorSlayer.Core.Helper
                 _peImage.OffsetReadByte(baseOffset + 0x58),
                 _peImage.OffsetReadByte(baseOffset + 0x6D),
                 _peImage.OffsetReadByte(baseOffset + 0x98),
-                _peImage.OffsetReadByte(baseOffset + 0xA6)
+                _peImage.OffsetReadByte(baseOffset + 0xA6),
             };
 
-        private static void Decrypt(IReadOnlyList<byte> keyData, IList<byte> data, int offset, int count)
+        private static void Decrypt(
+            IReadOnlyList<byte> keyData,
+            IList<byte> data,
+            int offset,
+            int count
+        )
         {
             var transform = new byte[256, 256];
             byte kb = 0;
             var keyInit = new byte[]
             {
-                0x78, 0x61, 0x32, keyData[0], keyData[2],
-                0x62, keyData[3], keyData[0], keyData[1], keyData[1],
-                0x66, keyData[1], keyData[5], 0x33, keyData[2],
-                keyData[4], 0x74, 0x32, keyData[3], keyData[2]
+                0x78,
+                0x61,
+                0x32,
+                keyData[0],
+                keyData[2],
+                0x62,
+                keyData[3],
+                keyData[0],
+                keyData[1],
+                keyData[1],
+                0x66,
+                keyData[1],
+                keyData[5],
+                0x33,
+                keyData[2],
+                keyData[4],
+                0x74,
+                0x32,
+                keyData[3],
+                keyData[2],
             };
             var key = new byte[32];
             for (var i = 0; i < 32; i++)
             {
-                key[i] = (byte)(i + keyInit[i % keyInit.Length] * keyInit[((i + 0x0B) | 0x1F) % keyInit.Length]);
+                key[i] = (byte)(
+                    i + keyInit[i % keyInit.Length] * keyInit[((i + 0x0B) | 0x1F) % keyInit.Length]
+                );
                 kb += key[i];
             }
 
@@ -158,8 +186,7 @@ namespace NETReactorSlayer.Core.Helper
                 {
                     counter++;
                     i1 = 1 + (key[(i + 37 + counter) % key.Length] + counter + kb) % 255;
-                }
-                while (transformTemp[0, i1] != 0x400);
+                } while (transformTemp[0, i1] != 0x400);
 
                 for (var i0 = 0; i0 < 256; i0++)
                     transformTemp[i0, i1] = transformTemp[(i0 + ki) % 256, 0];
@@ -189,21 +216,74 @@ namespace NETReactorSlayer.Core.Helper
             }
         }
 
-
         private readonly uint[] _baseOffsets = { 0x1C00, 0x1900, 0x1B60, 0x700 };
 
         private readonly short[] _decryptMethodPattern =
         {
-            0x83, 0xEC, 0x38, 0x53, 0xB0, -1, 0x88, 0x44, 0x24, 0x2B, 0x88, 0x44, 0x24, 0x2F, 0xB0,
-            -1, 0x88, 0x44, 0x24, 0x30, 0x88, 0x44, 0x24, 0x31, 0x88, 0x44, 0x24, 0x33, 0x55, 0x56
+            0x83,
+            0xEC,
+            0x38,
+            0x53,
+            0xB0,
+            -1,
+            0x88,
+            0x44,
+            0x24,
+            0x2B,
+            0x88,
+            0x44,
+            0x24,
+            0x2F,
+            0xB0,
+            -1,
+            0x88,
+            0x44,
+            0x24,
+            0x30,
+            0x88,
+            0x44,
+            0x24,
+            0x31,
+            0x88,
+            0x44,
+            0x24,
+            0x33,
+            0x55,
+            0x56,
         };
 
         private readonly MyPeImage _peImage;
 
         private readonly short[] _startMethodNet1XPattern =
         {
-            0x55, 0x8B, 0xEC, 0xB9, 0x14, 0x00, 0x00, 0x00, 0x6A, 0x00, 0x6A, 0x00, 0x49,
-            0x75, 0xF9, 0x53, 0x56, 0x57, 0xB8, -1, -1, -1, -1, 0xE8, -1, -1, -1, -1
+            0x55,
+            0x8B,
+            0xEC,
+            0xB9,
+            0x14,
+            0x00,
+            0x00,
+            0x00,
+            0x6A,
+            0x00,
+            0x6A,
+            0x00,
+            0x49,
+            0x75,
+            0xF9,
+            0x53,
+            0x56,
+            0x57,
+            0xB8,
+            -1,
+            -1,
+            -1,
+            -1,
+            0xE8,
+            -1,
+            -1,
+            -1,
+            -1,
         };
 
         private bool _isNet1X;

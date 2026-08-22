@@ -19,6 +19,7 @@ namespace NETReactorSlayer.De4dot.Renamer
 {
     public class PropertyInfo : MemberInfo
     {
-        public PropertyInfo(Ref @ref) : base(@ref) { }
+        public PropertyInfo(Ref @ref)
+            : base(@ref) { }
     }
 }

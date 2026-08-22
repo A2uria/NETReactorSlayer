@@ -34,7 +34,7 @@ namespace NETReactorSlayer.De4dot.Renamer
                 _eventNameCreator = new NameCreator("Event_"),
                 _genericPropertyNameCreator = new NameCreator("Prop_"),
                 StaticMethodNameCreator = new NameCreator("smethod_"),
-                InstanceMethodNameCreator = new NameCreator("method_")
+                InstanceMethodNameCreator = new NameCreator("method_"),
             };
             return vns;
         }
@@ -44,7 +44,7 @@ namespace NETReactorSlayer.De4dot.Renamer
             var vns = new VariableNameState
             {
                 _existingVariableNames = new ExistingNames(),
-                _variableNameCreator = new VariableNameCreator()
+                _variableNameCreator = new VariableNameCreator(),
             };
             vns._existingVariableNames.Merge(_existingVariableNames);
             vns._variableNameCreator.Merge(_variableNameCreator);
@@ -68,19 +68,24 @@ namespace NETReactorSlayer.De4dot.Renamer
             return this;
         }
 
-        public void MergeMethods(VariableNameState other) => _existingMethodNames.Merge(other._existingMethodNames);
+        public void MergeMethods(VariableNameState other) =>
+            _existingMethodNames.Merge(other._existingMethodNames);
 
         public void MergeProperties(VariableNameState other) =>
             _existingPropertyNames.Merge(other._existingPropertyNames);
 
-        public void MergeEvents(VariableNameState other) => _existingEventNames.Merge(other._existingEventNames);
+        public void MergeEvents(VariableNameState other) =>
+            _existingEventNames.Merge(other._existingEventNames);
 
         public string GetNewPropertyName(PropertyDef propertyDef)
         {
             var propType = propertyDef.PropertySig.GetRetType();
             var newName = IsGeneric(propType)
                 ? _existingPropertyNames.GetName(propertyDef.Name, _genericPropertyNameCreator)
-                : _existingPropertyNames.GetName(propertyDef.Name, () => _propertyNameCreator.Create(propType));
+                : _existingPropertyNames.GetName(
+                    propertyDef.Name,
+                    () => _propertyNameCreator.Create(propType)
+                );
             AddPropertyName(newName);
             return newName;
         }
@@ -119,8 +124,10 @@ namespace NETReactorSlayer.De4dot.Renamer
         public bool IsEventNameUsed(string eventName) => _existingEventNames.Exists(eventName);
 
         public string GetNewFieldName(FieldDef field) =>
-            _existingVariableNames.GetName(field.Name,
-                () => _variableNameCreator.Create(field.FieldSig.GetFieldType()));
+            _existingVariableNames.GetName(
+                field.Name,
+                () => _variableNameCreator.Create(field.FieldSig.GetFieldType())
+            );
 
         public string GetNewFieldName(string oldName, INameCreator nameCreator) =>
             _existingVariableNames.GetName(oldName, nameCreator.Create);

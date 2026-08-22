@@ -38,8 +38,10 @@ namespace NETReactorSlayer.Core.Stages
 
                 using (_encryptedResource)
                 {
-                    DeobUtils.DecryptAndAddResources(Context.Module,
-                        () => Decompress(_encryptedResource.Decrypt()));
+                    DeobUtils.DecryptAndAddResources(
+                        Context.Module,
+                        () => Decompress(_encryptedResource.Decrypt())
+                    );
 
                     foreach (var methodToRemove in _methodToRemove)
                         Cleaner.AddCallToBeRemoved(methodToRemove.ResolveMethodDef());
@@ -51,7 +53,9 @@ namespace NETReactorSlayer.Core.Stages
             }
             catch (Exception ex)
             {
-                Context.Logger.Error($"An unexpected error occurred during decrypting resources. {ex.Message}.");
+                Context.Logger.Error(
+                    $"An unexpected error occurred during decrypting resources. {ex.Message}."
+                );
             }
         }
 
@@ -63,18 +67,30 @@ namespace NETReactorSlayer.Core.Stages
                     continue;
                 if (!CheckFields(type.Fields))
                     continue;
-                foreach (var decrypterMethod in from method in type.Methods
-                         where method.IsStatic && method.HasBody
-                         where DotNetUtils.IsMethod(method, "System.Reflection.Assembly",
-                                   "(System.Object,System.ResolveEventArgs)") ||
-                               DotNetUtils.IsMethod(method, "System.Reflection.Assembly",
-                                   "(System.Object,System.Object)")
-                         where method.Body.ExceptionHandlers.Count == 0
-                         select GetDecrypterMethod(method, Array.Empty<string>(), true) ??
-                                GetDecrypterMethod(method, Array.Empty<string>(), false)
-                         into decrypterMethod
-                         where decrypterMethod != null
-                         select decrypterMethod)
+                foreach (
+                    var decrypterMethod in from method in type.Methods
+                    where method.IsStatic && method.HasBody
+                    where
+                        DotNetUtils.IsMethod(
+                            method,
+                            "System.Reflection.Assembly",
+                            "(System.Object,System.ResolveEventArgs)"
+                        )
+                        || DotNetUtils.IsMethod(
+                            method,
+                            "System.Reflection.Assembly",
+                            "(System.Object,System.Object)"
+                        )
+                    where method.Body.ExceptionHandlers.Count == 0
+                    select GetDecrypterMethod(method, Array.Empty<string>(), true)
+                        ?? GetDecrypterMethod(
+                            method,
+                            Array.Empty<string>(),
+                            false
+                        ) into decrypterMethod
+                    where decrypterMethod != null
+                    select decrypterMethod
+                )
                 {
                     _encryptedResource = new EncryptedResource(Context, decrypterMethod);
                     if (_encryptedResource.EmbeddedResource == null)
@@ -104,31 +120,45 @@ namespace NETReactorSlayer.Core.Stages
                 return true;
             if (fieldTypes.Count("System.String[]") != 1)
                 return false;
-            return fieldTypes.Count("System.Reflection.Assembly") == 1 || fieldTypes.Count("System.Object") == 1;
+            return fieldTypes.Count("System.Reflection.Assembly") == 1
+                || fieldTypes.Count("System.Object") == 1;
         }
 
-        private MethodDef
-            GetDecrypterMethod(MethodDef method, IList<string> additionalTypes, bool checkResource)
+        private MethodDef GetDecrypterMethod(
+            MethodDef method,
+            IList<string> additionalTypes,
+            bool checkResource
+        )
         {
             if (EncryptedResource.IsKnownDecrypter(method, additionalTypes, checkResource))
                 return method;
 
-            return DotNetUtils.GetCalledMethods(Context.Module, method)
+            return DotNetUtils
+                .GetCalledMethods(Context.Module, method)
                 .Where(calledMethod => DotNetUtils.IsMethod(calledMethod, "System.Void", "()"))
                 .FirstOrDefault(calledMethod =>
-                    EncryptedResource.IsKnownDecrypter(calledMethod, additionalTypes, checkResource));
+                    EncryptedResource.IsKnownDecrypter(calledMethod, additionalTypes, checkResource)
+                );
         }
 
         private static byte[] Decompress(byte[] bytes)
         {
-            try { return QuickLz.Decompress(bytes); }
+            try
+            {
+                return QuickLz.Decompress(bytes);
+            }
             catch
             {
-                try { return DeobUtils.Inflate(bytes, true); }
-                catch { return null; }
+                try
+                {
+                    return DeobUtils.Inflate(bytes, true);
+                }
+                catch
+                {
+                    return null;
+                }
             }
         }
-
 
         private IContext Context { get; set; }
         private EncryptedResource _encryptedResource;

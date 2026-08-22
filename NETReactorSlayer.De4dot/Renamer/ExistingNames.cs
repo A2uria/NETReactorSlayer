@@ -28,7 +28,8 @@ namespace NETReactorSlayer.De4dot.Renamer
         public string GetName(UTF8String oldName, INameCreator nameCreator) =>
             GetName(UTF8String.ToSystemStringOrEmpty(oldName), nameCreator);
 
-        public string GetName(string oldName, INameCreator nameCreator) => GetName(oldName, nameCreator.Create);
+        public string GetName(string oldName, INameCreator nameCreator) =>
+            GetName(oldName, nameCreator.Create);
 
         public string GetName(UTF8String oldName, Func<string> createNewName) =>
             GetName(UTF8String.ToSystemStringOrEmpty(oldName), createNewName);
@@ -40,7 +41,9 @@ namespace NETReactorSlayer.De4dot.Renamer
             {
                 var name = createNewName();
                 if (name == prevName)
-                    throw new ApplicationException($"Could not rename symbol to {Utils.ToCsharpString(name)}");
+                    throw new ApplicationException(
+                        $"Could not rename symbol to {Utils.ToCsharpString(name)}"
+                    );
 
                 if (!Exists(name) || name == oldName)
                 {

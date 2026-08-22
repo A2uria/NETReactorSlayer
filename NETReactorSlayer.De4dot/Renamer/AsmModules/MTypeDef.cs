@@ -172,7 +172,9 @@ namespace NETReactorSlayer.De4dot.Renamer.AsmModules
                 iface.TypeDef.InitializeVirtualMembers(groups, resolver);
             BaseType?.TypeDef.InitializeVirtualMembers(groups, resolver);
 
-            foreach (var methodDef in _methods.GetValues().Where(methodDef => methodDef.IsVirtual()))
+            foreach (
+                var methodDef in _methods.GetValues().Where(methodDef => methodDef.IsVirtual())
+            )
                 groups.Add(methodDef);
 
             InstantiateVirtualMembers(groups);
@@ -196,8 +198,11 @@ namespace NETReactorSlayer.De4dot.Renamer.AsmModules
         {
             var git = typeInfo.TypeRef.TryGetGenericInstSig();
             _interfaceMethodInfos.InitializeFrom(typeInfo.TypeDef._interfaceMethodInfos, git);
-            foreach (var newTypeInfo in typeInfo.TypeDef._allImplementedInterfaces.Keys.Select(info =>
-                         new TypeInfo(info, git)))
+            foreach (
+                var newTypeInfo in typeInfo.TypeDef._allImplementedInterfaces.Keys.Select(
+                    info => new TypeInfo(info, git)
+                )
+            )
                 _allImplementedInterfaces[newTypeInfo] = true;
         }
 
@@ -208,14 +213,20 @@ namespace NETReactorSlayer.De4dot.Renamer.AsmModules
             if (TypeDef.IsInterface)
                 return;
 
-            var methodsDict =
-                new Dictionary<IMethodDefOrRef, MMethodDef>(MethodEqualityComparer.DontCompareDeclaringTypes);
+            var methodsDict = new Dictionary<IMethodDefOrRef, MMethodDef>(
+                MethodEqualityComparer.DontCompareDeclaringTypes
+            );
 
             if (Interfaces.Count > 0)
             {
                 methodsDict.Clear();
-                foreach (var method in _methods.GetValues()
-                             .Where(method => method.IsPublic() && method.IsVirtual() && method.IsNewSlot()))
+                foreach (
+                    var method in _methods
+                        .GetValues()
+                        .Where(method =>
+                            method.IsPublic() && method.IsVirtual() && method.IsNewSlot()
+                        )
+                )
                     methodsDict[method.MethodDef] = method;
 
                 foreach (var ifaceInfo in Interfaces)
@@ -227,8 +238,10 @@ namespace NETReactorSlayer.De4dot.Renamer.AsmModules
                     var ifaceMethod = methodInst.OrigMethodDef;
                     if (!ifaceMethod.IsVirtual())
                         continue;
-                    var ifaceMethodRef =
-                        GenericArgsSubstitutor.Create(methodInst.MethodRef, ifaceInfo.TypeRef.TryGetGenericInstSig());
+                    var ifaceMethodRef = GenericArgsSubstitutor.Create(
+                        methodInst.MethodRef,
+                        ifaceInfo.TypeRef.TryGetGenericInstSig()
+                    );
                     if (!methodsDict.TryGetValue(ifaceMethodRef, out var classMethod))
                         continue;
                     _interfaceMethodInfos.AddMethod(ifaceInfo, ifaceMethod, classMethod);
@@ -254,16 +267,19 @@ namespace NETReactorSlayer.De4dot.Renamer.AsmModules
                 var ifaceMethod = methodsList[0].OrigMethodDef;
                 if (!ifaceMethod.IsVirtual())
                     continue;
-                var ifaceMethodRef =
-                    GenericArgsSubstitutor.Create(ifaceMethod.MethodDef, ifaceInfo.TypeRef.TryGetGenericInstSig());
+                var ifaceMethodRef = GenericArgsSubstitutor.Create(
+                    ifaceMethod.MethodDef,
+                    ifaceInfo.TypeRef.TryGetGenericInstSig()
+                );
                 if (!methodsDict.TryGetValue(ifaceMethodRef, out var classMethod))
                     continue;
                 _interfaceMethodInfos.AddMethodIfEmpty(ifaceInfo, ifaceMethod, classMethod);
             }
 
             methodsDict.Clear();
-            var ifaceMethodsDict =
-                new Dictionary<IMethodDefOrRef, MMethodDef>(MethodEqualityComparer.CompareDeclaringTypes);
+            var ifaceMethodsDict = new Dictionary<IMethodDefOrRef, MMethodDef>(
+                MethodEqualityComparer.CompareDeclaringTypes
+            );
             foreach (var ifaceInfo in _allImplementedInterfaces.Keys)
             {
                 var git = ifaceInfo.TypeRef.TryGetGenericInstSig();
@@ -282,23 +298,39 @@ namespace NETReactorSlayer.De4dot.Renamer.AsmModules
                     continue;
                 foreach (var overrideMethod in classMethod.MethodDef.Overrides)
                 {
-                    if (!ifaceMethodsDict.TryGetValue(overrideMethod.MethodDeclaration, out var ifaceMethod))
+                    if (
+                        !ifaceMethodsDict.TryGetValue(
+                            overrideMethod.MethodDeclaration,
+                            out var ifaceMethod
+                        )
+                    )
                         continue;
 
-                    _interfaceMethodInfos.AddMethod(overrideMethod.MethodDeclaration.DeclaringType, ifaceMethod,
-                        classMethod);
+                    _interfaceMethodInfos.AddMethod(
+                        overrideMethod.MethodDeclaration.DeclaringType,
+                        ifaceMethod,
+                        classMethod
+                    );
                 }
             }
 
-            foreach (var __ in from info in _interfaceMethodInfos.AllInfos
-                     from _ in info.IfaceMethodToClassMethod.Where(pair => pair.Value == null)
-                         .Where(_ => ResolvedAllInterfaces())
-                     select info)
+            foreach (
+                var __ in from info in _interfaceMethodInfos.AllInfos
+                from _ in info
+                    .IfaceMethodToClassMethod.Where(pair => pair.Value == null)
+                    .Where(_ => ResolvedAllInterfaces())
+                select info
+            )
                 ResolvedBaseClasses();
 
-            foreach (var pair in _interfaceMethodInfos.AllInfos.SelectMany(info => info.IfaceMethodToClassMethod
-                         .Where(pair => pair.Value != null)
-                         .Where(pair => pair.Key.MethodDef.MethodDef.Name == pair.Value.MethodDef.Name)))
+            foreach (
+                var pair in _interfaceMethodInfos.AllInfos.SelectMany(info =>
+                    info.IfaceMethodToClassMethod.Where(pair => pair.Value != null)
+                        .Where(pair =>
+                            pair.Key.MethodDef.MethodDef.Name == pair.Value.MethodDef.Name
+                        )
+                )
+            )
                 groups.Same(pair.Key.MethodDef, pair.Value);
         }
 
@@ -312,9 +344,9 @@ namespace NETReactorSlayer.De4dot.Renamer.AsmModules
             return _resolvedAllInterfacesResult.Value;
         }
 
-        private bool ResolvedAllInterfacesInternal() => TypeDef.Interfaces.Count == Interfaces.Count &&
-                                                        Interfaces.All(ifaceInfo =>
-                                                            ifaceInfo.TypeDef.ResolvedAllInterfaces());
+        private bool ResolvedAllInterfacesInternal() =>
+            TypeDef.Interfaces.Count == Interfaces.Count
+            && Interfaces.All(ifaceInfo => ifaceInfo.TypeDef.ResolvedAllInterfaces());
 
         private bool ResolvedBaseClasses()
         {
@@ -337,7 +369,12 @@ namespace NETReactorSlayer.De4dot.Renamer.AsmModules
         {
             if (Module == null)
                 return new MemberRefUser(null, method.Name, method.MethodSig, memberRefParent);
-            var mr = new MemberRefUser(Module.ModuleDefMd, method.Name, method.MethodSig, memberRefParent);
+            var mr = new MemberRefUser(
+                Module.ModuleDefMd,
+                method.Name,
+                method.MethodSig,
+                memberRefParent
+            );
             return Module.ModuleDefMd.UpdateRowId(mr);
         }
 
@@ -346,8 +383,10 @@ namespace NETReactorSlayer.De4dot.Renamer.AsmModules
             if (!TypeDef.IsInterface)
             {
                 if (BaseType != null)
-                    _virtualMethodInstances.InitializeFrom(BaseType.TypeDef._virtualMethodInstances,
-                        BaseType.TypeRef.TryGetGenericInstSig());
+                    _virtualMethodInstances.InitializeFrom(
+                        BaseType.TypeDef._virtualMethodInstances,
+                        BaseType.TypeRef.TryGetGenericInstSig()
+                    );
 
                 foreach (var methodDef in _methods.GetValues())
                 {
@@ -361,7 +400,9 @@ namespace NETReactorSlayer.De4dot.Renamer.AsmModules
                 }
             }
 
-            foreach (var methodDef in _methods.GetValues().Where(methodDef => methodDef.IsVirtual()))
+            foreach (
+                var methodDef in _methods.GetValues().Where(methodDef => methodDef.IsVirtual())
+            )
                 _virtualMethodInstances.Add(new MethodInst(methodDef, methodDef.MethodDef));
         }
 

@@ -17,7 +17,8 @@ namespace NETReactorSlayer.De4dot.Renamer
 {
     public class NameCreator : NameCreatorCounter
     {
-        public NameCreator(string prefix) : this(prefix, 0) { }
+        public NameCreator(string prefix)
+            : this(prefix, 0) { }
 
         public NameCreator(string prefix, int num)
         {

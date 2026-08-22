@@ -21,15 +21,27 @@ namespace NETReactorSlayer.Core.Helper
 {
     public static class MethodBodyParser
     {
-        public static MethodBodyHeader
-            ParseMethodBody(ref DataReader reader, out byte[] code, out byte[] extraSections)
+        public static MethodBodyHeader ParseMethodBody(
+            ref DataReader reader,
+            out byte[] code,
+            out byte[] extraSections
+        )
         {
-            try { return ParseMethodBody2(ref reader, out code, out extraSections); }
-            catch (Exception ex) when (ex is IOException or ArgumentException) { throw new InvalidMethodBody(); }
+            try
+            {
+                return ParseMethodBody2(ref reader, out code, out extraSections);
+            }
+            catch (Exception ex) when (ex is IOException or ArgumentException)
+            {
+                throw new InvalidMethodBody();
+            }
         }
 
         private static MethodBodyHeader ParseMethodBody2(
-            ref DataReader reader, out byte[] code, out byte[] extraSections)
+            ref DataReader reader,
+            out byte[] code,
+            out byte[] extraSections
+        )
         {
             var mbHeader = new MethodBodyHeader();
 
@@ -106,8 +118,7 @@ namespace NETReactorSlayer.Core.Helper
                     var num = reader.ReadByte() / 12;
                     reader.Position += 2 + (uint)num * 12;
                 }
-            }
-            while ((flags & 0x80) != 0);
+            } while ((flags & 0x80) != 0);
         }
 
         private static byte Peek(ref DataReader reader)

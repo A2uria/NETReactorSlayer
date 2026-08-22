@@ -32,14 +32,14 @@ namespace NETReactorSlayer.De4dot.Renamer.AsmModules
             TypeDef = other.TypeDef;
         }
 
-        public override int GetHashCode() => TypeDef.GetHashCode() + new SigComparer().GetHashCode(TypeRef);
+        public override int GetHashCode() =>
+            TypeDef.GetHashCode() + new SigComparer().GetHashCode(TypeRef);
 
         public override bool Equals(object obj)
         {
             if (obj is not TypeInfo other)
                 return false;
-            return TypeDef == other.TypeDef &&
-                   new SigComparer().Equals(TypeRef, other.TypeRef);
+            return TypeDef == other.TypeDef && new SigComparer().Equals(TypeRef, other.TypeRef);
         }
 
         public override string ToString() => TypeRef.ToString();
